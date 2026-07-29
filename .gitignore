@@ -25,10 +25,10 @@ htmlcov/
 
 
 # Projects ignored files
-data/
+rnd/data/
 # Jupyter
 .ipynb_checkpoints/
-notebooks/
+rnd/notebooks/
 
 # Environment and local config
 .env
