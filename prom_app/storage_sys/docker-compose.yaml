@@ -1,4 +1,23 @@
 services:
+  postgres:
+    build:
+      context: ../database
+    image: prom_app_postgres:local
+    container_name: prom_app_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: prom_app
+      POSTGRES_USER: prom_app
+      POSTGRES_PASSWORD: prom_app_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prom_app -d prom_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   s3-storage:
     image: minio/minio:latest
     container_name: prom_app_s3_storage
@@ -28,6 +47,6 @@ services:
       "
 
 volumes:
+  postgres_data:
   s3_storage_data:
-
 

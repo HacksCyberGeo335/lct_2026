@@ -1,4 +1,4 @@
-# Docker
+# Storage Sys
 
 В этой папке лежит общий `docker-compose.yaml` для локального запуска инфраструктуры проекта.
 
@@ -8,6 +8,7 @@
 
 - `s3-storage` - S3-compatible хранилище на базе MinIO.
 - `s3_init` - init-контейнер, который автоматически создает тестовые бакеты в MinIO.
+- `postgres` - локальная PostgreSQL база для таблиц видео.
 
 Позже сюда можно добавить остальные микросервисы:
 
@@ -59,6 +60,36 @@ http://s3-storage:9000
 
 Команда создания бакетов идемпотентная: если бакет уже существует, контейнер не падает.
 
+## postgres
+
+`postgres` собирается из соседней папки:
+
+```text
+../database
+```
+
+При первом создании volume PostgreSQL выполняет init-скрипты из:
+
+```text
+../database/initdb
+```
+
+Доступ с хоста:
+
+```text
+Host:     localhost
+Port:     5432
+Database: prom_app
+User:     prom_app
+Password: prom_app_password
+```
+
+Внутри compose сервисы могут обращаться к базе по адресу:
+
+```text
+postgres://prom_app:prom_app_password@postgres:5432/prom_app
+```
+
 ## volumes
 
 `volumes` описывает постоянные данные контейнеров.
@@ -66,8 +97,9 @@ http://s3-storage:9000
 Сейчас используется volume:
 
 - `s3_storage_data` - хранит данные MinIO из директории `/data` внутри контейнера.
+- `postgres_data` - хранит данные PostgreSQL.
 
-Благодаря volume файлы в S3 не пропадут после перезапуска контейнера.
+Благодаря volume файлы в S3 и данные PostgreSQL не пропадут после перезапуска контейнеров.
 
 ## Схема бакетов
 
@@ -82,7 +114,7 @@ docker-docs/MinIO.md
 Перейти в папку с compose-файлом:
 
 ```bash
-cd prom_app/docker
+cd prom_app/storage_sys
 ```
 
 Проверить конфигурацию:
@@ -91,7 +123,7 @@ cd prom_app/docker
 docker compose -f docker-compose.yaml config
 ```
 
-Поднять MinIO и init-контейнер:
+Поднять PostgreSQL, MinIO и init-контейнер:
 
 ```bash
 docker compose -f docker-compose.yaml up -d
@@ -106,7 +138,7 @@ docker compose -f docker-compose.yaml ps
 Проверить созданные бакеты:
 
 ```bash
-docker run --rm --network docker_default --entrypoint /bin/sh minio/mc:latest -c 'mc alias set local http://s3-storage:9000 prom_app prom_app_password >/dev/null && mc ls local'
+docker run --rm --network storage_sys_default --entrypoint /bin/sh minio/mc:latest -c 'mc alias set local http://s3-storage:9000 prom_app prom_app_password >/dev/null && mc ls local'
 ```
 
 Остановка:

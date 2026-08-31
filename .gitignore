@@ -23,6 +23,17 @@ dist/
 .coverage
 htmlcov/
 
+# Go build, test, and coverage artifacts
+bin/
+*.test
+*.out
+coverage.out
+coverage.html
+*.coverprofile
+cpu.prof
+mem.prof
+go.work.sum
+
 
 # Projects ignored files
 rnd/data/
