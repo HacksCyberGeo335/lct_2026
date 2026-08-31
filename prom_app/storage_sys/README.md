@@ -9,6 +9,7 @@
 - `s3-storage` - S3-compatible хранилище на базе MinIO.
 - `s3_init` - init-контейнер, который автоматически создает тестовые бакеты в MinIO.
 - `postgres` - локальная PostgreSQL база для таблиц видео.
+- `redis` - локальный Redis для кеша, очередей или краткоживущего состояния.
 
 Позже сюда можно добавить остальные микросервисы:
 
@@ -90,6 +91,28 @@ Password: prom_app_password
 postgres://prom_app:prom_app_password@postgres:5432/prom_app
 ```
 
+## redis
+
+`redis` собирается из корневой инфраструктурной папки:
+
+```text
+../../infra/redis
+```
+
+Доступ с хоста:
+
+```text
+Host: localhost
+Port: 6379
+URL:  redis://localhost:6379
+```
+
+Внутри compose сервисы могут обращаться к Redis по адресу:
+
+```text
+redis://redis:6379
+```
+
 ## volumes
 
 `volumes` описывает постоянные данные контейнеров.
@@ -98,6 +121,7 @@ postgres://prom_app:prom_app_password@postgres:5432/prom_app
 
 - `s3_storage_data` - хранит данные MinIO из директории `/data` внутри контейнера.
 - `postgres_data` - хранит данные PostgreSQL.
+- `redis_data` - хранит данные Redis из директории `/data` внутри контейнера.
 
 Благодаря volume файлы в S3 и данные PostgreSQL не пропадут после перезапуска контейнеров.
 
@@ -123,7 +147,7 @@ cd prom_app/storage_sys
 docker compose -f docker-compose.yaml config
 ```
 
-Поднять PostgreSQL, MinIO и init-контейнер:
+Поднять PostgreSQL, Redis, MinIO и init-контейнер:
 
 ```bash
 docker compose -f docker-compose.yaml up -d
