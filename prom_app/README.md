@@ -4,16 +4,16 @@
 MinIO, но нет корневой точки запуска всего приложения, окружений, CI/CD, миграций, production-конфигурации и реальной упаковки сервисов.
  
 Что сейчас хорошо:
-- Есть разделение на prom_app/services, prom_app/database, prom_app/storage_sys.
+- Есть разделение на prom_app/services и infra/postgres, infra/minio, infra/redis.
 - У api_gateway выбран нормальный Go-layout: cmd/<service>, internal/config, internal/handler, internal/router, internal/server.
-- Инфраструктура PostgreSQL и MinIO вынесена отдельно, есть docker-compose для локального запуска.
+- Инфраструктура PostgreSQL и MinIO вынесена отдельно, есть корневой docker-compose для локального запуска.
 - SQL-схема лежит отдельно от кода приложения.
 - В .gitignore исключены venv, build/cache, env-файлы, часть R&D-данных.
  
 Основные проблемы для серверного развёртывания:
-- docker-compose лежит в prom_app/storage_sys и поднимает только инфраструктуру. Для деплоя нужна единая композиция всего приложения: gateway, upload/session/websocket-сервисы, БД,
+- docker-compose лежит в корне и поднимает только инфраструктуру. Для деплоя нужна единая композиция всего приложения: gateway, upload/session/websocket-сервисы, БД,
 S3, сети, healthcheck, env.
-- Dockerfile у всех сервисов пустые, кроме database. Сейчас сервисы невозможно собрать и развернуть как контейнеры.
+- Dockerfile у всех сервисов пустые, кроме postgres. Сейчас сервисы невозможно собрать и развернуть как контейнеры.
 - Корневые README почти пустые. Нет понятной инструкции: как запустить локально, как собрать, какие переменные окружения нужны, какие порты используются.
 - Нет .env.example. При этом пароли захардкожены в docker-compose: prom_app_password. Для сервера так нельзя.
 - Нет разделения окружений: local/dev/stage/prod. Сейчас MinIO-бакеты смешивают prom/prod в названиях: video-originals-prom, video-derived-prod, video-detections-prod.
@@ -32,9 +32,7 @@ S3, сети, healthcheck, env.
 ├── .gitignore
 ├── .env.example
 ├── Makefile
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── docker-compose.prod.yml
+├── docker-compose.yml ✅
 ├── docs/
 │   ├── architecture.md
 │   ├── deployment.md
@@ -62,8 +60,9 @@ S3, сети, healthcheck, env.
 │   ├── session_service/
 │   └── websocket_service/
 ├── infra/
-│   ├── postgres/
-│   ├── minio/
+│   ├── postgres/ ✅
+│   ├── minio/ ✅
+│   ├── redis/ ✅
 │   └── README.md
 ├── contracts/
 │   ├── openapi/
@@ -78,10 +77,10 @@ S3, сети, healthcheck, env.
     └── experiments/
 Что перенести из текущей структуры:
 - prom_app/services/* -> services/*
-- prom_app/database/initdb/001_video_tables.sql -> migrations/000001_create_video_tables.up.sql
-- prom_app/storage_sys/docker-compose.yaml -> docker-compose.dev.yml или infra/compose/docker-compose.infra.yml
-- prom_app/storage_sys/docs/MinIO.md -> docs/storage.md
-- prom_app/database/README.md -> docs/database.md
+- infra/postgres/initdb/001_video_tables.sql -> migrations/000001_create_video_tables.up.sql
+- docker-compose.yml -> docker-compose.dev.yml или infra/compose/docker-compose.infra.yml
+- infra/minio/docs/MinIO.md -> docs/storage.md
+- infra/postgres/README.md -> docs/database.md
 - rnd -> research, при этом тяжелые artefacts/store лучше держать вне git или через DVC/S3
  
 Минимальный порядок исправлений без переписывания архитектуры:

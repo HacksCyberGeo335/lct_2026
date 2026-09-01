@@ -61,6 +61,13 @@ services:
       mc mb --ignore-existing local/video-detections-prod;
       "
 
+  frontend:
+    build:
+      context: ./prom_app/frontend
+    container_name: prom_app_frontend
+    ports:
+      - "3000:80"
+
 volumes:
   postgres_data:
   redis_data:
