@@ -2,18 +2,18 @@ services:
   postgres:
     build:
       context: ./infra/postgres
-    image: prom_app_postgres:local
-    container_name: prom_app_postgres
+    image: ${POSTGRES_IMAGE:-prom_app_postgres:local}
+    container_name: ${POSTGRES_CONTAINER_NAME:-prom_app_postgres}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
     environment:
-      POSTGRES_DB: prom_app
-      POSTGRES_USER: prom_app
-      POSTGRES_PASSWORD: prom_app_password
+      POSTGRES_DB: ${POSTGRES_DB:-prom_app}
+      POSTGRES_USER: ${POSTGRES_USER:-prom_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prom_app_password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U prom_app -d prom_app"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prom_app} -d ${POSTGRES_DB:-prom_app}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -21,10 +21,10 @@ services:
   redis:
     build:
       context: ./infra/redis
-    image: prom_app_redis:local
-    container_name: prom_app_redis
+    image: ${REDIS_IMAGE:-prom_app_redis:local}
+    container_name: ${REDIS_CONTAINER_NAME:-prom_app_redis}
     ports:
-      - "6379:6379"
+      - "${REDIS_HOST_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -34,109 +34,114 @@ services:
       retries: 10
 
   s3-storage:
-    image: minio/minio:latest
-    container_name: prom_app_s3_storage
+    build:
+      context: ./infra/minio
+      args:
+        MINIO_BASE_IMAGE: ${MINIO_BASE_IMAGE:-minio/minio:latest}
+    image: ${MINIO_IMAGE:-prom_app_minio:local}
+    container_name: ${MINIO_CONTAINER_NAME:-prom_app_s3_storage}
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_HOST_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_HOST_PORT:-9001}:9001"
     environment:
-      MINIO_ROOT_USER: prom_app
-      MINIO_ROOT_PASSWORD: prom_app_password
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-prom_app}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-prom_app_password}
     volumes:
       - s3_storage_data:/data
 
   s3_init:
-    image: minio/mc:latest
-    container_name: prom_app_s3_init
+    image: ${MINIO_MC_IMAGE:-minio/mc:latest}
+    container_name: ${MINIO_INIT_CONTAINER_NAME:-prom_app_s3_init}
     depends_on:
       - s3-storage
     entrypoint: >
       /bin/sh -c "
-      until mc alias set local http://s3-storage:9000 prom_app prom_app_password; do
+      until mc alias set local ${MINIO_INTERNAL_ENDPOINT:-http://s3-storage:9000} ${MINIO_ROOT_USER:-prom_app} ${MINIO_ROOT_PASSWORD:-prom_app_password}; do
         sleep 1;
       done;
-      mc mb --ignore-existing local/video-originals-prom;
-      mc mb --ignore-existing local/video-derived-prod;
-      mc mb --ignore-existing local/video-detections-prod;
-      mc anonymous set public local/video-originals-prom;
+      mc mb --ignore-existing local/${MINIO_ORIGINALS_BUCKET:-video-originals-prom};
+      mc mb --ignore-existing local/${MINIO_DERIVED_BUCKET:-video-derived-prod};
+      mc mb --ignore-existing local/${MINIO_DETECTIONS_BUCKET:-video-detections-prod};
+      mc anonymous set public local/${MINIO_ORIGINALS_BUCKET:-video-originals-prom};
       "
 
   upload_service:
     build:
       context: ./prom_app/services/upload_service
-    image: prom_app_upload_service:local
-    container_name: prom_app_upload_service
+    image: ${UPLOAD_SERVICE_IMAGE:-prom_app_upload_service:local}
+    container_name: ${UPLOAD_SERVICE_CONTAINER_NAME:-prom_app_upload_service}
     depends_on:
       postgres:
         condition: service_healthy
       s3_init:
         condition: service_completed_successfully
     ports:
-      - "8081:8081"
+      - "${UPLOAD_SERVICE_HOST_PORT:-8081}:8081"
     environment:
-      UPLOAD_SERVICE_ADDRESS: ":8081"
-      DATABASE_URL: postgres://prom_app:prom_app_password@postgres:5432/prom_app?sslmode=disable
-      MINIO_INTERNAL_ENDPOINT: http://s3-storage:9000
-      MINIO_PUBLIC_ENDPOINT: http://localhost:9000
-      MINIO_ORIGINALS_BUCKET: video-originals-prom
+      UPLOAD_SERVICE_ADDRESS: ${UPLOAD_SERVICE_ADDRESS:-:8081}
+      DATABASE_URL: ${DATABASE_URL:-postgres://prom_app:prom_app_password@postgres:5432/prom_app?sslmode=disable}
+      MINIO_INTERNAL_ENDPOINT: ${MINIO_INTERNAL_ENDPOINT:-http://s3-storage:9000}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      MINIO_ORIGINALS_BUCKET: ${MINIO_ORIGINALS_BUCKET:-video-originals-prom}
 
   api_gateway:
     build:
       context: ./prom_app/services/api_gateway
-    image: prom_app_api_gateway:local
-    container_name: prom_app_api_gateway
+    image: ${API_GATEWAY_IMAGE:-prom_app_api_gateway:local}
+    container_name: ${API_GATEWAY_CONTAINER_NAME:-prom_app_api_gateway}
     depends_on:
       - upload_service
     ports:
-      - "8080:8080"
+      - "${API_GATEWAY_HOST_PORT:-8080}:8080"
     environment:
-      API_GATEWAY_ADDRESS: ":8080"
-      UPLOAD_SERVICE_URL: http://upload_service:8081
+      API_GATEWAY_ADDRESS: ${API_GATEWAY_ADDRESS:-:8080}
+      UPLOAD_SERVICE_URL: ${UPLOAD_SERVICE_URL:-http://upload_service:8081}
 
   frontend:
     build:
       context: ./prom_app/frontend
       args:
-        VITE_API_BASE_URL: http://localhost:8080
-    container_name: prom_app_frontend
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    image: ${FRONTEND_IMAGE:-lct_2026-frontend:latest}
+    container_name: ${FRONTEND_CONTAINER_NAME:-prom_app_frontend}
     ports:
-      - "3000:80"
+      - "${FRONTEND_HOST_PORT:-3000}:80"
 
   loki:
-    image: grafana/loki:3.2.1
-    container_name: prom_app_loki
+    image: ${LOKI_IMAGE:-grafana/loki:3.2.1}
+    container_name: ${LOKI_CONTAINER_NAME:-prom_app_loki}
     command: -config.file=/etc/loki/loki.yml
     ports:
-      - "3100:3100"
+      - "${LOKI_HOST_PORT:-3100}:3100"
     volumes:
       - ./infra/grafana/loki/loki.yml:/etc/loki/loki.yml:ro
       - loki_data:/loki
 
   alloy:
-    image: grafana/alloy:v1.5.1
-    container_name: prom_app_alloy
+    image: ${ALLOY_IMAGE:-grafana/alloy:v1.5.1}
+    container_name: ${ALLOY_CONTAINER_NAME:-prom_app_alloy}
     command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
     depends_on:
       - loki
     ports:
-      - "12345:12345"
+      - "${ALLOY_HOST_PORT:-12345}:12345"
     volumes:
       - ./infra/grafana/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   grafana:
-    image: grafana/grafana:11.2.2
-    container_name: prom_app_grafana
+    image: ${GRAFANA_IMAGE:-grafana/grafana:11.2.2}
+    container_name: ${GRAFANA_CONTAINER_NAME:-prom_app_grafana}
     depends_on:
       - loki
     ports:
-      - "3001:3000"
+      - "${GRAFANA_HOST_PORT:-3001}:3000"
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_DEFAULT_THEME: light
-      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/prom_app_http_logs.json
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_DEFAULT_THEME: ${GRAFANA_DEFAULT_THEME:-light}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: ${GRAFANA_HOME_DASHBOARD_PATH:-/var/lib/grafana/dashboards/prom_app_http_logs.json}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./infra/grafana/grafana/provisioning:/etc/grafana/provisioning:ro

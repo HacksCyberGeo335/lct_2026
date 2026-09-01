@@ -28,6 +28,19 @@ Grafana credentials:
 
 ## 1. Поднять проект
 
+Все основные параметры проекта вынесены в корневой `.env`. Docker Compose читает этот файл автоматически.
+
+В `.env` сейчас лежат:
+
+- имена Docker-образов и контейнеров
+- порты PostgreSQL, Redis, MinIO, gateway, frontend, Grafana, Loki, Alloy
+- credentials PostgreSQL, MinIO и Grafana
+- MinIO endpoints и bucket names
+- URL связки `api_gateway -> upload_service`
+- `VITE_API_BASE_URL` для сборки frontend
+
+Если меняете `VITE_API_BASE_URL`, после этого нужно пересобрать frontend, потому что Vite подставляет эту переменную на этапе build.
+
 Из корня репозитория:
 
 ```bash

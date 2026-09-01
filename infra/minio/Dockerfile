@@ -1,0 +1,3 @@
+ARG MINIO_BASE_IMAGE=minio/minio:latest
+
+FROM ${MINIO_BASE_IMAGE}

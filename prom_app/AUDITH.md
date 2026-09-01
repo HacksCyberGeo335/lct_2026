@@ -4,37 +4,79 @@
 
 ## Короткий вывод
 
-Репозиторий стал ближе к deployable-приложению: появилась единая корневая `docker-compose.yml`, локальная инфраструктура PostgreSQL/Redis/MinIO и отдельный React + TypeScript + Vite frontend, который собирается и отдается через nginx-контейнер.
+Проект уже имеет рабочий локальный vertical slice: frontend, API Gateway, upload service, PostgreSQL, Redis, MinIO и observability-стек поднимаются через корневой `docker-compose.yml`. Frontend собирается через Vite и отдаётся nginx-контейнером, API Gateway проксирует video API в `upload_service`, а `upload_service` пишет состояние загрузки в PostgreSQL и проверяет объект в MinIO.
 
-При этом серверная часть всё ещё остается черновым скелетом. Главные риски для серверного развёртывания: пустые Dockerfile у backend-сервисов, отсутствие миграционного механизма, отсутствие `.env.example` на уровне всего приложения, захардкоженные credentials в compose, нет CI/CD, нет контрактов API и нет единого operational README с командами запуска, сборки и деплоя.
+Основная проблема сместилась: теперь это не отсутствие запуска вообще, а недостаточная production-дисциплина. Нужно закрепить миграции, контракты API, Makefile, CI, разделение окружений, нормализацию bucket names и документацию deployment-пути.
 
 ## Что сейчас хорошо
 
-- Есть понятное разделение на `prom_app/services`, `prom_app/frontend` и `infra`.
-- `api_gateway` использует нормальную Go-структуру: `cmd/<service>`, `internal/config`, `internal/handler`, `internal/router`, `internal/server`.
-- В корневом `docker-compose.yml` уже описаны PostgreSQL, Redis, MinIO, init-контейнер MinIO и frontend.
-- Frontend вынесен в отдельное приложение: React, TypeScript, Vite, Dockerfile, README, `.env.example`, отдельный API-слой.
-- MinIO-документация и PostgreSQL-документация лежат отдельно в `infra`.
-- SQL init-скрипт базы хранится отдельно от кода приложения.
-- `.gitignore` уже исключает Python/Go build artifacts, env-файлы, IDE-файлы и часть R&D-данных.
-- `rnd` фактически отделен от `prom_app`, что лучше, чем смешивание research-кода с application-кодом внутри одного дерева.
+- Есть единый compose stack в корне проекта.
+- Инфраструктура вынесена в `infra`: PostgreSQL, Redis, MinIO, Grafana/Loki/Alloy.
+- MinIO теперь имеет отдельный `infra/minio/Dockerfile`, при этом service name `s3-storage` и endpoint `http://s3-storage:9000` сохранены.
+- `api_gateway` и `upload_service` имеют рабочие Go Dockerfile и запускаются как контейнеры.
+- `api_gateway` отделён от upload-логики и проксирует `/api/videos/*` во внутренний `upload_service`.
+- `upload_service` реализует текущий upload contract: `init-upload` и `upload-complete`.
+- Frontend вынесен в `prom_app/frontend`, использует React, TypeScript, Vite и собирается в nginx runtime.
+- PostgreSQL init schema хранится отдельно в `infra/postgres/initdb`.
+- Observability stack собирает JSON access logs от `frontend`, `api_gateway`, `upload_service`.
+- `.gitignore` уже исключает env-файлы, IDE-файлы, build/cache и часть research-данных.
 
 ## Основные проблемы
 
-- Backend-сервисы пока не являются deployable: `prom_app/services/api_gateway/Dockerfile`, `upload_service/Dockerfile`, `session_service/Dockerfile`, `websocket_service/Dockerfile` пустые.
-- В `docker-compose.yml` добавлен frontend, но backend-сервисы ещё не собираются и не запускаются как контейнеры.
-- Корневой `README.md` почти пустой, поэтому нет единой инструкции для запуска всего проекта.
-- Нет корневого `.env.example` для PostgreSQL, Redis, MinIO, Gateway, frontend API URL, bucket names и портов.
-- В `docker-compose.yml` захардкожены логины и пароли: `prom_app`, `prom_app_password`.
-- Нет разделения конфигураций `local/dev/stage/prod`.
-- Имена bucket'ов смешивают окружения: `video-originals-prom`, `video-derived-prod`, `video-detections-prod`.
-- База использует только `infra/postgres/initdb`; это подходит для первого локального запуска, но не для контролируемых обновлений схемы на сервере.
-- Нет `migrations/` и команды миграций.
-- Нет CI-пайплайна: lint, tests, frontend build, Go build, Docker build, `docker compose config`.
-- Нет Makefile/Taskfile/scripts для стандартных команд: `up`, `down`, `build`, `test`, `lint`, `migrate`.
-- Нет `contracts/`: OpenAPI/proto/event-схемы не зафиксированы, хотя архитектура движется к нескольким сервисам.
-- `upload_service`, `session_service`, `websocket_service` пока выглядят как заготовки без реального кода.
-- `.idea` всё ещё присутствует в рабочем дереве; правило в `.gitignore` есть, но уже попавшие в git IDE-файлы надо удалить из индекса.
+- Нет корневого `.env.example`, хотя `.env` уже используется.
+- Корневой `README.md` не должен быть единственным знанием о запуске, но ему всё равно нужна краткая operational-инструкция.
+- Нет `Makefile` для стандартных команд.
+- Нет migration tool и каталога `migrations/`; `initdb` работает только при первом создании PostgreSQL volume.
+- Нет API-контракта в `contracts/openapi`.
+- Нет CI для `docker compose config`, Docker build, frontend build и Go tests.
+- `session_service` и `websocket_service` сейчас отсутствуют как рабочие сервисы в compose.
+- Bucket names всё ещё смешивают окружения: `video-originals-prom`, `video-derived-prod`, `video-detections-prod`.
+- Local credentials лежат в `.env`; для production нужен отдельный секретный контур.
+- Прямой PUT в MinIO сейчас зависит от public anonymous policy для originals bucket; для production лучше перейти на presigned URL.
+- `.idea` игнорируется, но если файлы уже отслеживаются git, их нужно удалить из индекса.
+
+## Текущая структура приложения
+
+```text
+prom_app/
+├── AUDITH.md
+├── frontend/
+│   ├── Dockerfile
+│   ├── README.md
+│   ├── nginx.conf
+│   ├── package.json
+│   └── src/
+└── services/
+    ├── SERVICES.md
+    ├── api_gateway/
+    │   ├── APIGateWay.md
+    │   ├── Dockerfile
+    │   ├── cmd/api_gateway/main.go
+    │   └── internal/
+    └── upload_service/
+        ├── README.md
+        ├── Dockerfile
+        ├── cmd/upload_service/main.go
+        └── internal/
+```
+
+## Текущий runtime flow
+
+```text
+Browser
+  -> frontend http://localhost:3000
+  -> POST http://localhost:8080/api/videos/init-upload
+  -> api_gateway
+  -> upload_service
+  -> PostgreSQL row status=UPLOADING
+  <- uuid, upload_url, storage_key
+  -> PUT http://localhost:9000/<bucket>/<uuid>/<file_name>
+  -> POST http://localhost:8080/api/videos/<uuid>/upload-complete
+  -> api_gateway
+  -> upload_service
+  -> HEAD http://s3-storage:9000/<bucket>/<uuid>/<file_name>
+  -> PostgreSQL row status=READY
+```
 
 ## Рекомендуемая целевая структура
 
@@ -67,117 +109,53 @@ lct_2026/
 │   ├── postgres/
 │   ├── minio/
 │   ├── redis/
-│   └── README.md
+│   └── grafana/
 ├── prom_app/
 │   ├── frontend/
 │   └── services/
-│       ├── api_gateway/
-│       ├── upload_service/
-│       ├── session_service/
-│       └── websocket_service/
 └── research/
     ├── notebooks/
     └── experiments/
 ```
 
-Эту структуру можно вводить постепенно. Прямо сейчас не обязательно переносить `prom_app/services` в корень: важнее сначала сделать текущую структуру запускаемой, документированной и проверяемой.
-
 ## План рефакторинга и структуризации
 
-### Этап 1. Зафиксировать app-root и команды запуска
+### Этап 1. Operational baseline
 
-Цель: любой разработчик должен понять, как поднять проект за 5 минут.
+1. Создать корневой `.env.example` на основе текущего `.env`.
+2. Добавить `Makefile` с командами `up`, `down`, `build`, `logs`, `test`, `lint`, `compose-config`.
+3. Проверить, что `docker compose config` работает без локальных неявных зависимостей.
+4. Описать текущие URL в корневой документации или `docs/deployment.md`.
 
-1. Заполнить корневой `README.md`: назначение проекта, требования, порты, команды запуска, troubleshooting.
-2. Добавить корневой `.env.example`.
-3. Подключить `.env` в `docker-compose.yml` через `${VAR:-default}`.
-4. Добавить `Makefile` с командами `up`, `down`, `build`, `logs`, `test`, `lint`, `compose-config`.
-
-### Этап 2. Довести Docker Compose до полного local stack
-
-Цель: `docker compose up --build` должен поднимать весь локальный vertical slice.
-
-1. Добавить service `api_gateway` в `docker-compose.yml`.
-2. Заполнить Dockerfile для `api_gateway`.
-3. Добавить healthcheck для `api_gateway`.
-4. Передать в `api_gateway` env-переменные для PostgreSQL, Redis и S3.
-5. Подключить frontend к gateway через `VITE_API_BASE_URL`.
-6. Оставить `upload_service`, `session_service`, `websocket_service` вне compose до появления реального кода или добавить их как явно stub-сервисы.
-
-### Этап 3. Убрать секреты из compose
-
-Цель: compose должен быть безопасным шаблоном, а не местом хранения credentials.
-
-1. Заменить `prom_app` и `prom_app_password` на переменные окружения.
-2. Добавить значения по умолчанию только для local-dev.
-3. Описать в README, что production `.env` не коммитится.
-4. Проверить, что frontend не получает MinIO credentials.
-
-### Этап 4. Ввести миграции БД
-
-Цель: схема БД должна обновляться управляемо, а не только при первом создании volume.
+### Этап 2. Миграции
 
 1. Создать `migrations/`.
-2. Перенести `infra/postgres/initdb/001_video_tables.sql` в `migrations/000001_create_video_tables.up.sql`.
+2. Перенести текущую схему из `infra/postgres/initdb/001_video_tables.sql` в `000001_create_video_tables.up.sql`.
 3. Добавить `000001_create_video_tables.down.sql`.
-4. Выбрать инструмент миграций: `golang-migrate`, `goose` или аналог.
-5. Добавить команду `make migrate`.
-6. Оставить `initdb` только для bootstrap локальной БД или убрать после появления migration container.
+4. Выбрать migration tool: `goose` или `golang-migrate`.
+5. Добавить `make migrate`.
 
-### Этап 5. Нормализовать окружения и bucket names
-
-Цель: не смешивать local/dev/prod в названиях и конфигурации.
-
-1. Ввести переменные `APP_ENV`, `S3_ENDPOINT`, `S3_BUCKET_ORIGINALS`, `S3_BUCKET_DERIVED`, `S3_BUCKET_DETECTIONS`.
-2. Для local использовать согласованные имена: `video-originals-local`, `video-derived-local`, `video-detections-local`.
-3. Для prod задавать bucket names только через production `.env`.
-4. Обновить MinIO init-контейнер, чтобы он создавал bucket'ы из env.
-
-### Этап 6. Зафиксировать API-контракты
-
-Цель: frontend, gateway и будущие сервисы должны иметь общий контракт.
+### Этап 3. Контракты API
 
 1. Создать `contracts/openapi/api-gateway.yaml`.
-2. Описать `POST /api/videos/init-upload`, `POST /api/videos/{uuid}/upload-complete` и health endpoints.
-3. Описать request/response DTO и ошибки.
+2. Описать `/health`, `/api/videos/init-upload`, `/api/videos/{uuid}/upload-complete`.
+3. Зафиксировать DTO `InitUploadRequest`, `InitUploadResponse` и error responses.
 4. Добавить проверку OpenAPI в CI.
 
-### Этап 7. CI/CD минимум
+### Этап 4. Environment split
 
-Цель: не принимать изменения, которые не собираются.
+1. Разделить local и production defaults.
+2. Нормализовать bucket names по окружениям.
+3. Убрать production secrets из файлов репозитория.
+4. Для production заменить public MinIO upload на presigned URL.
 
-1. Добавить GitHub Actions или другой CI.
-2. Проверять frontend: `npm ci`, `npm run build`.
-3. Проверять Go: `go test ./...`, `go build ./...`.
-4. Проверять Docker: `docker compose config`, `docker compose build frontend api_gateway`.
-5. Добавить линтеры после стабилизации кода.
+### Этап 5. CI
 
-### Этап 8. Очистить репозиторий от локальных файлов
-
-Цель: в git должен лежать только воспроизводимый проектный код.
-
-1. Убедиться, что `.idea/` есть в `.gitignore`.
-2. Удалить уже отслеживаемые `.idea` файлы из индекса командой `git rm --cached -r .idea`.
-3. Проверить, что `rnd/notebooks` и тяжелые артефакты не попадают в git.
-4. При необходимости переименовать `rnd` в `research`.
-
-## Минимальный порядок работ
-
-Если нужно двигаться без большого рефакторинга, оптимальный порядок такой:
-
-1. Корневой `.env.example`.
-2. Переменные окружения в `docker-compose.yml`.
-3. Dockerfile для `api_gateway`.
-4. Service `api_gateway` в compose.
-5. Корневой README с командами запуска.
-6. Makefile.
-7. Миграции БД.
-8. OpenAPI-контракт для текущего upload flow.
-9. CI для frontend build, Go build/test и Docker compose config.
-10. Разделение local/prod compose-конфигураций.
+1. Проверять frontend: `npm ci`, `npm run build`.
+2. Проверять Go: `go test ./...`, `go build ./...`.
+3. Проверять Docker: `docker compose config`, `docker compose build`.
+4. Проверять документацию и OpenAPI после появления контрактов.
 
 ## Итоговая оценка
 
-Как черновой скелет проект уже выглядит лучше, чем в предыдущем аудите: появился frontend и корневой compose начал становиться точкой сборки приложения. Но до серверного развёртывания ещё не хватает backend-контейнеризации, env-дисциплины, миграций, контрактов, CI и документации запуска.
-
-Главный следующий шаг: сделать `api_gateway` полноценным контейнеризованным сервисом в `docker-compose.yml`, а затем убрать credentials и bucket names в `.env.example`.
+Для локальной разработки проект уже достаточно собран: сервисы запускаются, frontend связан с backend, MinIO и PostgreSQL включены в flow. Для серверного развёртывания нужно довести дисциплину конфигурации, миграций, контрактов и CI.
