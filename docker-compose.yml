@@ -103,7 +103,48 @@ services:
     ports:
       - "3000:80"
 
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: prom_app_loki
+    command: -config.file=/etc/loki/loki.yml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./infra/grafana/loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+
+  alloy:
+    image: grafana/alloy:v1.5.1
+    container_name: prom_app_alloy
+    command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
+    depends_on:
+      - loki
+    ports:
+      - "12345:12345"
+    volumes:
+      - ./infra/grafana/alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  grafana:
+    image: grafana/grafana:11.2.2
+    container_name: prom_app_grafana
+    depends_on:
+      - loki
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_DEFAULT_THEME: light
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/prom_app_http_logs.json
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/grafana/dashboards:/var/lib/grafana/dashboards:ro
+
 volumes:
   postgres_data:
   redis_data:
   s3_storage_data:
+  loki_data:
+  grafana_data:

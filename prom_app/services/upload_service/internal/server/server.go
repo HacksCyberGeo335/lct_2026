@@ -5,6 +5,7 @@ import (
 
 	"upload_service/internal/config"
 	"upload_service/internal/handler"
+	"upload_service/internal/middleware"
 	"upload_service/internal/repository"
 	"upload_service/internal/storage"
 )
@@ -17,7 +18,7 @@ func New(cfg config.Config, repo *repository.Repository, storageClient *storage.
 
 	return &http.Server{
 		Addr:         cfg.Address,
-		Handler:      mux,
+		Handler:      middleware.AccessLog("upload_service", mux),
 		ReadTimeout:  cfg.ReadTimeout,
 		WriteTimeout: cfg.WriteTimeout,
 		IdleTimeout:  cfg.IdleTimeout,

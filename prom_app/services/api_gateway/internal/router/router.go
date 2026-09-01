@@ -20,7 +20,7 @@ func New(uploadServiceURL string) (http.Handler, error) {
 	mux.HandleFunc("/health", handler.Health)
 	mux.Handle("/api/videos/", reverseProxy(target))
 
-	return middleware.CORS(mux), nil
+	return middleware.CORS(middleware.AccessLog("api_gateway", mux)), nil
 }
 
 func reverseProxy(target *url.URL) http.Handler {

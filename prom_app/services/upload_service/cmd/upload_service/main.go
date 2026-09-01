@@ -11,6 +11,8 @@ import (
 )
 
 func main() {
+	log.SetFlags(0)
+
 	cfg := config.Load()
 	ctx := context.Background()
 
