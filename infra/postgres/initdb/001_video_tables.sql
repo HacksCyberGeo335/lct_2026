@@ -3,6 +3,9 @@ CREATE TABLE IF NOT EXISTS general_video_table (
     video_name TEXT,
     storage_key TEXT,
     status TEXT,
+    original_size_bytes BIGINT,
+    original_content_type TEXT,
+    original_etag TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
