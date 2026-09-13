@@ -112,6 +112,7 @@ function ModalPanel({ onClose, title, description, children }: Omit<Parameters<t
           onCloseAutoFocus={(event) => {
             event.preventDefault();
             if (returnFocus.current?.isConnected) returnFocus.current.focus();
+            else document.querySelector<HTMLElement>('#main')?.focus();
           }}
         >
           <motion.div

@@ -11,7 +11,6 @@ const Settings = lazy(() => import('./pages/Settings').then((module) => ({ defau
 import { ApiWorkspace } from './pages/ApiWorkspace';
 import { Empty, QueryState } from './shared/ui';
 import { appearance, transition } from './shared/motion';
-import { resetDemo } from './api/source';
 
 function ObjectRoute({ section }: { section: 'site' | 'analytics' | 'schedule' | 'settings' }) {
   const { mode } = useApp(),
@@ -45,7 +44,7 @@ function ObjectRoute({ section }: { section: 'site' | 'analytics' | 'schedule' |
   );
 }
 function Shell() {
-  const { mode, changeMode, clearRecordings } = useApp(),
+  const { mode, changeMode } = useApp(),
     query = useObjects(),
     location = useLocation(),
     navigate = useNavigate(),
@@ -166,18 +165,6 @@ function Shell() {
             </Routes>
           </Suspense>
         </motion.div>
-        {query.error && mode === 'demo' && (
-          <button
-            className="btn btn-quiet"
-            onClick={() => {
-              resetDemo();
-              clearRecordings();
-              void query.refetch();
-            }}
-          >
-            Восстановить исходные демоданные
-          </button>
-        )}
       </main>
       <footer className="wrap footer">
         <span>Стройконтроль · Мониторинг строительства</span>

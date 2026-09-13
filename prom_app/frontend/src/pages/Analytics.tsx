@@ -1,3 +1,4 @@
+import { PlanRecovery } from '../features/import/PlanRecovery';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useApp, useFilters } from '../app/context';
@@ -26,7 +27,15 @@ export function Analytics({ project }: { project: Project }) {
     queryKey: [mode, 'report', project.id, period],
     queryFn: ({ signal }) => source(mode).report(project.id, period, signal),
     retry: false,
+    enabled: !project.planError,
   });
+  if (project.planError)
+    return (
+      <>
+        <ObjectHeader project={project} title="Соответствие графику" />
+        <PlanRecovery project={project} />
+      </>
+    );
   if (!report.data)
     return <QueryState pending={report.isPending} error={report.error} retry={() => void report.refetch()} />;
   const data = report.data;
@@ -68,11 +77,7 @@ export function Analytics({ project }: { project: Project }) {
             data.compliance === null ? '—' : formatNumber(data.compliance) + '%',
             'Факт / план с весами по длительности',
           ],
-          [
-            'Отклонение прогресса',
-            data.plan ? deltaText(data.delta) : 'Нет расчёта',
-            'Факт минус план на дату среза',
-          ],
+          ['Отклонение прогресса', deltaText(data.delta), 'Факт минус план на дату среза'],
           ['Текущий этап', project.stage, 'Модельный пример этапа'],
           [
             'Прогноз завершения',

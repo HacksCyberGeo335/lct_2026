@@ -18,7 +18,13 @@ for (const path of [
   if (response.status() !== 200) throw new Error('Bad deep link ' + path);
   results.push({ path, status: response.status(), title: await page.title() });
 }
-for (const path of ['/api', '/api/videos/unsupported', '/media/missing.webm', '/assets/missing.js']) {
+for (const path of [
+  '/api',
+  '/api/videos/unsupported',
+  '/media/missing.webm',
+  '/assets/missing.js',
+  '/fonts/missing.woff2',
+]) {
   const response = await fetch(base + path),
     body = await response.text();
   if (response.status < 400 || body.includes('id="root"'))

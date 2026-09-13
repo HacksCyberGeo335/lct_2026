@@ -90,6 +90,7 @@ export interface Project {
   progress: number;
   cameras: Camera[];
   stages: Stage[];
+  planError: string | null;
   forecast: string | null;
   updatedAt: string;
   coverage: number | null;

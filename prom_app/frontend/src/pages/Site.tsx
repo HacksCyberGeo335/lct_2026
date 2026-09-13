@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { PlanRecovery } from '../features/import/PlanRecovery';
 import { Link } from 'react-router-dom';
 import { useApp, useFilters, objectUrl } from '../app/context';
 import { type Project, type Recording, CAPTURED, deltaText, stageStatus } from '../domain/models';
 import { ObjectHeader } from '../shared/ObjectHeader';
 import { Empty, Legend } from '../shared/ui';
 import { Player } from '../features/player/Player';
+import { parsePosition } from '../features/player/usePlayback';
 import { Upload } from '../features/upload/Upload';
 export function Site({ project }: { project: Project }) {
   const { recordings } = useApp(),
@@ -29,9 +30,7 @@ export function Site({ project }: { project: Project }) {
       : sourceId === 'sample-stills'
         ? { ...sample, id: 'sample-stills', kind: 'synthetic' as const, url: null }
         : local.find((r) => r.id === sourceId);
-  const initialTime = Math.max(0, Math.min(60, Number(params.get('t')) || 15)),
-    [time, setTime] = useState(initialTime);
-  useEffect(() => setTime(initialTime), [initialTime, cameraId, sourceId]);
+  const requestedTime = parsePosition(params.get('t'), recording?.kind === 'video' ? 0 : 15);
   return (
     <>
       <ObjectHeader project={project}>
@@ -42,7 +41,7 @@ export function Site({ project }: { project: Project }) {
           onSelected={(id) => update({ recording: id, t: '0' })}
         />
       </ObjectHeader>
-      {project.status === 'warn' && (
+      {project.status === 'warn' && project.stages.some((stage) => stage.fact !== null) && (
         <div className="alarm">
           <div>
             <p className="alarm-t">Наблюдения указывают на риск отставания</p>
@@ -71,6 +70,7 @@ export function Site({ project }: { project: Project }) {
             onChange={(e) => update({ camera: e.target.value, recording: null, t: null })}
           >
             {!project.cameras.length && <option value="">Камеры не подключены</option>}
+            {!!project.cameras.length && !camera && <option value={cameraId ?? ''}>Камера не найдена</option>}
             {project.cameras.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -82,6 +82,7 @@ export function Site({ project }: { project: Project }) {
         <label className="field compact">
           Источник
           <select value={sourceId} onChange={(e) => update({ recording: e.target.value, t: null })}>
+            {!recording && <option value={sourceId}>Запись недоступна</option>}
             <option value="sample">Демовидео · 25.08.2026</option>
             <option value="sample-stills">Серия демоснимков · 25.08.2026</option>
             {local.map((r) => (
@@ -98,7 +99,10 @@ export function Site({ project }: { project: Project }) {
           <Empty
             title="Запись недоступна"
             action={
-              <button className="btn btn-quiet" onClick={() => update({ recording: null })}>
+              <button
+                className="btn btn-quiet"
+                onClick={() => update({ recording: 'sample-stills', t: '0' })}
+              >
                 Вернуться к снимкам
               </button>
             }
@@ -126,8 +130,8 @@ export function Site({ project }: { project: Project }) {
           key={project.id + '-' + cameraId + '-' + sourceId}
           camera={camera}
           recording={recording}
-          time={time}
-          onTime={setTime}
+          requestedTime={requestedTime}
+          onSeek={(value) => update({ t: String(value) }, true)}
         />
       )}
       <section className="sheet sheet-pad comparison">
@@ -140,21 +144,25 @@ export function Site({ project }: { project: Project }) {
         <p className="sub">
           Модельные показатели этапов на 25.08.2026. Не являются результатом анализа загруженного файла.
         </p>
-        <div className="stage-bars">
-          {project.stages.map((s) => (
-            <div className="stage-bar-row" key={s.id}>
-              <span>{s.name}</span>
-              <div className="double-track">
-                <i className="plan-bar" style={{ width: (s.plan ?? 0) + '%' }} />
-                <i className={'fact-bar ' + stageStatus(s)} style={{ width: (s.fact ?? 0) + '%' }} />
+        {project.planError ? (
+          <PlanRecovery project={project} />
+        ) : (
+          <div className="stage-bars">
+            {project.stages.map((s) => (
+              <div className="stage-bar-row" key={s.id}>
+                <span>{s.name}</span>
+                <div className="double-track">
+                  <i className="plan-bar" style={{ width: (s.plan ?? 0) + '%' }} />
+                  <i className={'fact-bar ' + stageStatus(s)} style={{ width: (s.fact ?? 0) + '%' }} />
+                </div>
+                <span className="mono">
+                  {s.fact === null ? '—' : s.fact + '%'}{' '}
+                  <small>{deltaText(s.fact !== null && s.plan !== null ? s.fact - s.plan : null)}</small>
+                </span>
               </div>
-              <span className="mono">
-                {s.fact === null ? '—' : s.fact + '%'}{' '}
-                <small>{deltaText(s.fact !== null && s.plan !== null ? s.fact - s.plan : null)}</small>
-              </span>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         <Legend />
       </section>
     </>

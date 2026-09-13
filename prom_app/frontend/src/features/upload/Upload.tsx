@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../app/context';
 import {
-  buildStorageObjectUrl,
+  storageReadUrl,
   completeVideoUpload,
   initVideoUpload,
   uploadVideoToStorage,
@@ -60,8 +60,9 @@ export function Upload({
     const controller = new AbortController();
     aborter.current = controller;
     setError('');
+    setProgress(null);
     try {
-      let id: string, url: string;
+      let id: string, url: string | null;
       if (mode === 'demo') {
         // Local object URL is immediate; there is no byte-transfer progress or simulated ML.
         controller.signal.throwIfAborted();
@@ -75,7 +76,7 @@ export function Upload({
         });
         const ticket = await session.current.run(file, controller.signal, setPhase, setProgress);
         id = ticket.uuid;
-        url = buildStorageObjectUrl(ticket);
+        url = storageReadUrl(ticket);
       }
       addRecording({
         id,
@@ -143,7 +144,10 @@ export function Upload({
             type="file"
             accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime"
             disabled={busy}
-            onChange={(e) => select(e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              select(e.target.files?.[0] ?? null);
+              e.target.value = '';
+            }}
           />
         </label>
         {mode === 'api' && (

@@ -5,6 +5,17 @@ import { detectionsAt } from '../demo/observations';
 import { readConfig } from '../shared/config';
 import { source, UnsupportedError } from '../api/source';
 describe('Domain and configuration', () => {
+  it('normalizes a root API base and rejects invalid URLs or embedded credentials', () => {
+    expect(readConfig({ VITE_API_BASE_URL: '/' }).apiBase).toBe('/api');
+    for (const address of [
+      'http://host:bad',
+      'https://user:pass@example.com',
+      '//other-host',
+      '/api?token=x',
+      'https://example.com/#hash',
+    ])
+      expect(() => readConfig({ VITE_API_BASE_URL: address })).toThrow('VITE_API_BASE_URL');
+  });
   it('keeps real mode honest and validates unknown modes', async () => {
     await expect(source('api').objects(new AbortController().signal)).rejects.toBeInstanceOf(
       UnsupportedError,

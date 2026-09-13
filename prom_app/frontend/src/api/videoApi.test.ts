@@ -1,10 +1,11 @@
+import { request } from './http';
 import { describe, it, expect, vi } from 'vitest';
 import {
   buildStorageObjectUrl,
+  storageReadUrl,
   uploadDto,
   UploadSession,
   validateVideo,
-  request,
   type UploadTransport,
 } from './videoApi';
 const id = '021472d8-a659-47de-893d-bedc24d015e7';
@@ -29,6 +30,8 @@ describe('Boundary contracts', () => {
     );
     const signed = 'https://media.example/video/a.mp4?X-Amz-Signature=a%2Bz&X-Amz-Credential=a%2Fb';
     expect(buildStorageObjectUrl({ ...ticket, upload_url: signed })).toBe(signed);
+    expect(storageReadUrl({ ...ticket, upload_url: signed })).toBeNull();
+    expect(storageReadUrl(ticket)).toBe(buildStorageObjectUrl(ticket));
     expect(
       buildStorageObjectUrl({ ...ticket, upload_url: 'https://media.example/s3/video-originals-prom' }),
     ).toContain('/s3/video-originals-prom/' + id + '/');
@@ -47,7 +50,9 @@ describe('Boundary contracts', () => {
       vi.fn(async () => new Response('', { status: 403 })),
     );
     const signal = new AbortController().signal;
-    await expect(request('/api', '/videos/x', {}, signal)).rejects.toThrow('Доступ запрещён');
+    await expect(request('/api', '/videos/x', {}, signal, (response) => response.text())).rejects.toThrow(
+      'Доступ запрещён',
+    );
     expect(vi.mocked(fetch).mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal);
     vi.unstubAllGlobals();
   });

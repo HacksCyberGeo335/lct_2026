@@ -1,3 +1,4 @@
+import { PlanRecovery } from '../features/import/PlanRecovery';
 import { useState } from 'react';
 import { day, isoDay, formatDate, SNAPSHOT, type Project, type Stage, stageStatus } from '../domain/models';
 import { ObjectHeader } from '../shared/ObjectHeader';
@@ -32,7 +33,9 @@ export function Schedule({ project }: { project: Project }) {
             </select>
           </label>
         </div>
-        {project.stages.length ? (
+        {project.planError ? (
+          <PlanRecovery project={project} />
+        ) : project.stages.length ? (
           <div className="gantt-scroll" tabIndex={0} aria-label="Прокручиваемый календарный график">
             <div className="gantt-table" style={{ minWidth: Math.max(840, scale * 840) }}>
               <div className="gantt-date-row">

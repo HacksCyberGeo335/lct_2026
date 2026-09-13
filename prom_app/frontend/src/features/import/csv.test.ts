@@ -5,6 +5,25 @@ const validate = (text: string) => {
   return validateRows(parsed, defaultMapping(parsed.headers));
 };
 describe('CSV boundary', () => {
+  it('validates normalized header names and missing column selections', () => {
+    expect(validate(' name ,name,start,end\nA,B,2026-01-01,2026-02-01').errors[0].message).toContain(
+      'дублируются',
+    );
+    expect(validate('name,start,end,\nA,2026-01-01,2026-02-01,x').errors[0].message).toContain('пустыми');
+    const input = parseCsv(template),
+      mapping = defaultMapping(input.headers);
+    mapping.zone = 'missing';
+    expect(validateRows(input, mapping).errors[0].message).toContain('отсутствует');
+  });
+  it('reports physical CSV line numbers after blanks and quoted multiline cells', () => {
+    const input = parseCsv(
+      '\nname,start,end\n"Фундамент\nзона А",2026-01-01,2026-02-01\n\nОшибка,2026-02-30,2026-03-01',
+    );
+    expect(input.lineNumbers).toEqual([3, 6]);
+    const result = validateRows(input, defaultMapping(input.headers));
+    expect(result.stages[0].name).toBe('Фундамент\nзона А');
+    expect(result.errors[0].row).toBe(6);
+  });
   it('accepts template and overlapping stages without inventing observations', () => {
     const p = validate(template);
     expect(p.errors).toEqual([]);

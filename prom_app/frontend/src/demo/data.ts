@@ -55,6 +55,7 @@ export const projects: Project[] = Object.entries(referenceObjects).map(([id, ra
       })),
     })),
     stages,
+    planError: null,
     forecast: index >= 4 ? null : raw.kpi.forecast,
     updatedAt: CAPTURED,
     coverage: index === 5 ? null : index === 3 ? 42 : index === 4 ? 25 : 92,

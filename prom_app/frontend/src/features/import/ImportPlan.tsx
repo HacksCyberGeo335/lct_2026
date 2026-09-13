@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../app/context';
 import { source } from '../../api/source';
@@ -20,11 +20,21 @@ export function ImportPlan({ objectId }: { objectId: string }) {
     [mapping, setMapping] = useState<Mapping>(defaultMapping([])),
     [error, setError] = useState(''),
     [success, setSuccess] = useState(false),
-    [busy, setBusy] = useState(false);
-  const version = useRef(0);
-  const preview = input ? validateRows(input, mapping) : null;
+    [busy, setBusy] = useState(false),
+    [reading, setReading] = useState(false);
+  const version = useRef(0),
+    applying = useRef(false);
+  useEffect(
+    () => () => {
+      version.current++;
+    },
+    [],
+  );
+  const preview = useMemo(() => (input ? validateRows(input, mapping) : null), [input, mapping]);
   function close() {
+    if (applying.current) return;
     version.current++;
+    setReading(false);
     setOpen(false);
   }
   async function read(file: File | undefined) {
@@ -32,11 +42,13 @@ export function ImportPlan({ objectId }: { objectId: string }) {
     setError('');
     setInput(null);
     setSuccess(false);
+    setReading(false);
     if (!file) return;
     if (!file.name.toLowerCase().endsWith('.csv') || file.size > 2 * 1024 * 1024) {
       setError('Нужен CSV UTF-8 размером до 2 МБ.');
       return;
     }
+    setReading(true);
     try {
       const text = new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer());
       if (current !== version.current) return;
@@ -45,19 +57,26 @@ export function ImportPlan({ objectId }: { objectId: string }) {
       setMapping(defaultMapping(result.headers));
     } catch {
       if (current === version.current) setError('Не удалось прочитать файл. Проверьте кодировку UTF-8.');
+    } finally {
+      if (current === version.current) setReading(false);
     }
   }
   async function apply() {
-    if (!preview || preview.errors.length || mode === 'api' || busy) return;
+    if (!preview || preview.errors.length || mode === 'api' || applying.current) return;
+    applying.current = true;
     setBusy(true);
     setError('');
     try {
       await source(mode).savePlan(objectId, preview.stages);
-      await client.invalidateQueries({ queryKey: [mode] });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: [mode, 'objects'] }),
+        client.invalidateQueries({ queryKey: [mode, 'report', objectId] }),
+      ]);
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Ошибка сохранения');
     } finally {
+      applying.current = false;
       setBusy(false);
     }
   }
@@ -93,9 +112,13 @@ export function ImportPlan({ objectId }: { objectId: string }) {
             type="file"
             accept=".csv,text/csv"
             disabled={busy}
-            onChange={(e) => void read(e.target.files?.[0])}
+            onChange={(e) => {
+              void read(e.target.files?.[0]);
+              e.target.value = '';
+            }}
           />
         </label>
+        {reading && <p role="status">Читаем CSV…</p>}
         {input && (
           <>
             <div className="mapping">
@@ -104,6 +127,7 @@ export function ImportPlan({ objectId }: { objectId: string }) {
                   {label}
                   {['name', 'start', 'end'].includes(key) ? ' *' : ''}
                   <select
+                    disabled={busy}
                     aria-label={'Колонка: ' + label}
                     value={mapping[key as keyof Mapping]}
                     onChange={(e) => {
@@ -133,7 +157,7 @@ export function ImportPlan({ objectId }: { objectId: string }) {
                 <tbody>
                   {input.rows.slice(0, 20).map((r, i) => (
                     <tr key={i}>
-                      <td>{i + 2}</td>
+                      <td>{input.lineNumbers[i]}</td>
                       {r.map((value, j) => (
                         <td key={j}>{value}</td>
                       ))}

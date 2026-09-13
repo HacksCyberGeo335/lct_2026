@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../app/context';
-import { source, resetDemo } from '../api/source';
+import { source } from '../api/source';
+import { resetDemo } from '../api/demoStorage';
 import type { Project, Settings as SettingsModel } from '../domain/models';
 import { ObjectHeader } from '../shared/ObjectHeader';
 import { Modal, Notice, QueryState } from '../shared/ui';
@@ -9,6 +10,7 @@ export function Settings({ project }: { project: Project }) {
   const { mode, clearRecordings } = useApp(),
     client = useQueryClient(),
     [reset, setReset] = useState(false),
+    [resetError, setResetError] = useState(''),
     [message, setMessage] = useState('');
   const key = [mode, 'settings', project.id];
   const query = useQuery({
@@ -24,14 +26,15 @@ export function Settings({ project }: { project: Project }) {
     },
   });
   async function resetAll() {
+    setResetError('');
     try {
       resetDemo();
       clearRecordings();
       await client.invalidateQueries({ queryKey: ['demo'] });
       setReset(false);
       setMessage('Демосостояние сброшено.');
-    } catch {
-      setMessage('Не удалось сбросить локальное хранилище.');
+    } catch (error) {
+      setResetError(error instanceof Error ? error.message : 'Не удалось сбросить локальное хранилище.');
     }
   }
   const settings: [keyof SettingsModel, string, string][] = [
@@ -141,6 +144,11 @@ export function Settings({ project }: { project: Project }) {
         title="Сбросить демосостояние?"
         description="Будут восстановлены исходные планы и настройки всех демообъектов, локальные записи исчезнут из сеанса. Файлы на диске и данные API сохранятся."
       >
+        {resetError && (
+          <p className="error-text" role="alert">
+            {resetError}
+          </p>
+        )}
         <div className="actions">
           <button className="btn btn-primary" onClick={() => void resetAll()}>
             Восстановить демоданные

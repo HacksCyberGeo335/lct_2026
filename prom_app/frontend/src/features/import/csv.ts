@@ -13,6 +13,8 @@ export type Mapping = Record<keyof typeof columns, string>;
 export interface CsvInput {
   headers: string[];
   rows: string[][];
+  lineNumbers: number[];
+  headerLine: number;
   error: string | null;
 }
 export interface CsvPreview {
@@ -20,20 +22,43 @@ export interface CsvPreview {
   errors: { row: number; message: string }[];
 }
 export function parseCsv(text: string): CsvInput {
-  const result = Papa.parse<string[]>(text.replace(/^\uFEFF/, ''), { skipEmptyLines: 'greedy' });
-  const [headers = [], ...rows] = result.data;
+  const source = text.replace(/^\uFEFF/, '');
+  const records: string[][] = [],
+    lineNumbers: number[] = [];
+  let cursor = 0,
+    line = 1,
+    structureError: string | null = null;
+  Papa.parse<string[]>(source, {
+    step: (result) => {
+      const firstLine = line;
+      line += (source.slice(cursor, result.meta.cursor).match(/\r\n|\r|\n/g) ?? []).length;
+      cursor = result.meta.cursor;
+      if (result.errors.length && !structureError)
+        structureError = 'Ошибка структуры CSV: ' + result.errors[0].message;
+      if (result.data.every((cell) => !cell.trim())) return;
+      records.push(result.data);
+      lineNumbers.push(firstLine);
+    },
+  });
+  const [rawHeaders = [], ...rows] = records;
+  const headers = rawHeaders.map((value) => value.trim());
+  const headerLine = lineNumbers.shift() ?? 1;
   return {
-    headers: headers.map((s) => s.trim()),
+    headers,
     rows,
-    error: result.errors.length
-      ? 'Ошибка структуры CSV: ' + result.errors[0].message
-      : headers.length < 3
+    lineNumbers,
+    headerLine,
+    error:
+      structureError ??
+      (headers.length < 3
         ? 'Нужно не менее трёх колонок.'
-        : new Set(headers).size !== headers.length
-          ? 'Названия колонок дублируются.'
-          : rows.length > 2000
-            ? 'Лимит импорта — 2000 этапов.'
-            : null,
+        : headers.some((header) => !header)
+          ? 'Названия колонок не должны быть пустыми.'
+          : new Set(headers).size !== headers.length
+            ? 'Названия колонок дублируются.'
+            : rows.length > 2000
+              ? 'Лимит импорта — 2000 этапов.'
+              : null),
   };
 }
 export function defaultMapping(headers: string[]): Mapping {
@@ -49,12 +74,20 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
     stages: Stage[] = [],
     ids = new Set<string>(),
     signatures = new Set<string>();
-  if (input.error) return { stages, errors: [{ row: 1, message: input.error }] };
+  if (input.error) return { stages, errors: [{ row: input.headerLine, message: input.error }] };
   if (!mapping.name || !mapping.start || !mapping.end)
-    return { stages, errors: [{ row: 1, message: 'Сопоставьте название, начало и окончание.' }] };
+    return {
+      stages,
+      errors: [{ row: input.headerLine, message: 'Сопоставьте название, начало и окончание.' }],
+    };
   const mapped = Object.values(mapping).filter(Boolean);
   if (new Set(mapped).size !== mapped.length)
-    return { stages, errors: [{ row: 1, message: 'Одна колонка сопоставлена нескольким полям.' }] };
+    return {
+      stages,
+      errors: [{ row: input.headerLine, message: 'Одна колонка сопоставлена нескольким полям.' }],
+    };
+  if (mapped.some((name) => !input.headers.includes(name)))
+    return { stages, errors: [{ row: input.headerLine, message: 'Выбранная колонка отсутствует в файле.' }] };
   input.rows.forEach((row, i) => {
     const get = (key: keyof Mapping) => (row[input.headers.indexOf(mapping[key])] ?? '').trim();
     const name = get('name'),
@@ -73,11 +106,11 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
       messages.push('Количество — целое неотрицательное число');
     if (cls && !equipmentClass.safeParse(cls).success) messages.push('Класс: exc, dump, crane или mixer');
     if (qty && !cls) messages.push('Для количества укажите класс техники');
-    const signature = [name.toLowerCase(), start, end, get('zone').toLowerCase()].join('|');
+    const signature = JSON.stringify([name.toLowerCase(), start, end, get('zone').toLowerCase()]);
     if (ids.has(id) || signatures.has(signature)) messages.push('Дублирующийся ID или этап');
     ids.add(id);
     signatures.add(signature);
-    if (messages.length) errors.push({ row: i + 2, message: messages.join('; ') });
+    if (messages.length) errors.push({ row: input.lineNumbers[i], message: messages.join('; ') });
     else
       stages.push({
         id,

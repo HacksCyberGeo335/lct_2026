@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useApp } from '../app/context';
-import { request } from '../api/videoApi';
+import { request, readJson } from '../api/http';
 import { Upload } from '../features/upload/Upload';
 import { ImportPlan } from '../features/import/ImportPlan';
 import { Empty, QueryState } from '../shared/ui';
@@ -12,8 +12,14 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
   const health = useQuery({
     queryKey: ['api', 'health', apiBase],
     queryFn: async ({ signal }) => {
-      const response = await request(apiBase.replace(/\/api$/, ''), '/health', {}, signal, 8000);
-      return z.object({ status: z.literal('ok') }).parse(await response.json());
+      return request(
+        apiBase.replace(/\/api$/, ''),
+        '/health',
+        {},
+        signal,
+        readJson(z.object({ status: z.literal('ok') })),
+        8000,
+      );
     },
     retry: false,
   });
@@ -66,7 +72,11 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
               ))}
             </select>
           </label>
-          <video controls preload="metadata" className="api-video" src={recording.url ?? undefined} />
+          {recording.url ? (
+            <video key={recording.id} controls preload="metadata" className="api-video" src={recording.url} />
+          ) : (
+            <p>Видео загружено. Сервер не предоставил отдельный адрес для просмотра.</p>
+          )}
           <p>READY: видео загружено; анализ пока недоступен.</p>
           <p className="sub">
             Если видео не воспроизводится, проверьте доступность публичного URL и кодек. Список существует

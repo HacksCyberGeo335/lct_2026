@@ -1,16 +1,18 @@
 import { z } from 'zod';
+import { request, readJson } from './http';
 export const uploadDto = z.object({
   uuid: z.string().uuid(),
   upload_url: z.url().refine((s) => /^https?:\/\//.test(s)),
   storage_key: z.string().min(1),
 });
 export type UploadTicket = z.infer<typeof uploadDto>;
+const isSignedUpload = (url: URL) =>
+  [...url.searchParams.keys()].some((key) => /signature|credential|x-amz-/i.test(key));
 
 /** Current Go contract returns bucket URL and storage_key INCLUDING the bucket. */
 export function buildStorageObjectUrl(ticket: UploadTicket): string {
   const url = new URL(ticket.upload_url);
-  if ([...url.searchParams.keys()].some((k) => /signature|credential|x-amz-/i.test(k)))
-    return ticket.upload_url;
+  if (isSignedUpload(url)) return ticket.upload_url;
   const key = ticket.storage_key.split('/');
   if (key.some((p) => !p || p === '.' || p === '..'))
     throw new Error('Некорректный storage_key в ответе сервера.');
@@ -21,57 +23,12 @@ export function buildStorageObjectUrl(ticket: UploadTicket): string {
   url.pathname = url.pathname.replace(/\/+$/, '') + '/' + key.map(encodeURIComponent).join('/');
   return url.href;
 }
-export async function request(
-  base: string,
-  path: string,
-  init: RequestInit,
-  signal: AbortSignal,
-  timeout = 20000,
-): Promise<Response> {
-  const controller = new AbortController();
-  const abort = () => controller.abort(signal.reason);
-  if (signal.aborted) abort();
-  signal.addEventListener('abort', abort, { once: true });
-  const timer = setTimeout(
-    () => controller.abort(new DOMException('Превышено время ожидания', 'TimeoutError')),
-    timeout,
-  );
-  try {
-    const response = await fetch(base + path, {
-      ...init,
-      signal: controller.signal,
-      credentials: 'same-origin',
-    });
-    if (!response.ok) {
-      const message =
-        response.status === 401
-          ? 'Требуется авторизация.'
-          : response.status === 403
-            ? 'Доступ запрещён.'
-            : response.status === 404
-              ? 'Ресурс не найден.'
-              : 'Сервер вернул HTTP ' + response.status + '.';
-      throw new Error(message);
-    }
-    return response;
-  } catch (error) {
-    if (signal.aborted) throw new DOMException('Передача отменена', 'AbortError');
-    if (controller.signal.aborted)
-      throw new Error('Сервер не ответил вовремя. Результат запроса может быть неизвестен.', {
-        cause: error,
-      });
-    if (error instanceof TypeError)
-      throw new Error('Не удалось связаться с сервером. Проверьте адрес Gateway, сеть и CORS.', {
-        cause: error,
-      });
-    throw error;
-  } finally {
-    clearTimeout(timer);
-    signal.removeEventListener('abort', abort);
-  }
+export function storageReadUrl(ticket: UploadTicket): string | null {
+  // A PUT signature does not grant GET access. The current unsigned contract shares the object URL.
+  return isSignedUpload(new URL(ticket.upload_url)) ? null : buildStorageObjectUrl(ticket);
 }
 export const initVideoUpload = async (base: string, file: File, signal: AbortSignal) => {
-  const response = await request(
+  return request(
     base,
     '/videos/init-upload',
     {
@@ -80,11 +37,11 @@ export const initVideoUpload = async (base: string, file: File, signal: AbortSig
       body: JSON.stringify({ file_name: file.name, size: file.size }),
     },
     signal,
+    readJson(
+      uploadDto,
+      'Некорректный ответ init-upload. UUID мог быть создан; автоматический повтор отключён.',
+    ),
   );
-  const result = uploadDto.safeParse(await response.json());
-  if (!result.success)
-    throw new Error('Некорректный ответ init-upload. UUID мог быть создан; автоматический повтор отключён.');
-  return result.data;
 };
 export const completeVideoUpload = async (base: string, uuid: string, signal: AbortSignal) => {
   await request(
@@ -92,6 +49,7 @@ export const completeVideoUpload = async (base: string, uuid: string, signal: Ab
     '/videos/' + encodeURIComponent(uuid) + '/upload-complete',
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
     signal,
+    (response) => response.text(),
   );
 };
 export function uploadVideoToStorage(
