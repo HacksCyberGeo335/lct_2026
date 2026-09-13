@@ -1,165 +1,227 @@
-import { ChangeEvent, useMemo, useState } from "react";
-import {
-  completeVideoUpload,
-  initVideoUpload,
-  uploadVideoToStorage,
-} from "./api/videoApi";
-import type { UploadStatus } from "./types/video";
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { motion, useReducedMotion } from 'motion/react';
+import { AppContext, useApp, useObjects, useProject, type LocalRecording } from './app/context';
+import type { Mode } from './domain/models';
+import { Objects } from './pages/Objects';
+const Site = lazy(() => import('./pages/Site').then((module) => ({ default: module.Site })));
+const Analytics = lazy(() => import('./pages/Analytics').then((module) => ({ default: module.Analytics })));
+const Schedule = lazy(() => import('./pages/Schedule').then((module) => ({ default: module.Schedule })));
+const Settings = lazy(() => import('./pages/Settings').then((module) => ({ default: module.Settings })));
+import { ApiWorkspace } from './pages/ApiWorkspace';
+import { Empty, QueryState } from './shared/ui';
+import { appearance, transition } from './shared/motion';
+import { resetDemo } from './api/source';
 
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) {
-    return "0 B";
-  }
-
-  const units = ["B", "KB", "MB", "GB"];
-  const unitIndex = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
-  const value = bytes / 1024 ** unitIndex;
-
-  if (unitIndex === 0) {
-    return `${value} ${units[unitIndex]}`;
-  }
-
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
-}
-
-function getStatusMessage(status: UploadStatus, selectedFile: File | null): string {
-  if (!selectedFile) {
-    return "Файл не выбран";
-  }
-
-  switch (status) {
-    case "initializing":
-      return "Инициализация загрузки...";
-    case "uploading":
-      return "Загрузка видео...";
-    case "completing":
-      return "Подтверждение загрузки...";
-    case "success":
-      return "Видео успешно загружено";
-    case "error":
-      return "Ошибка загрузки видео";
-    case "selected":
-    case "initial":
-    default:
-      return `Выбран файл: ${selectedFile.name}`;
-  }
-}
-
-function App() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [status, setStatus] = useState<UploadStatus>("initial");
-  const [progress, setProgress] = useState(0);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [uploadedUuid, setUploadedUuid] = useState("");
-
-  const isBusy = status === "initializing" || status === "uploading" || status === "completing";
-  const isUploadDisabled = !selectedFile || isBusy;
-  const readableSize = useMemo(
-    () => (selectedFile ? formatFileSize(selectedFile.size) : ""),
-    [selectedFile]
+function ObjectRoute({ section }: { section: 'site' | 'analytics' | 'schedule' | 'settings' }) {
+  const { mode } = useApp(),
+    query = useProject(),
+    location = useLocation();
+  if (mode === 'api') return <ApiWorkspace section={section} />;
+  if (query.isPending || query.error)
+    return <QueryState pending={query.isPending} error={query.error} retry={() => void query.refetch()} />;
+  if (!query.project)
+    return (
+      <Empty
+        title="Объект не найден"
+        action={
+          <Link className="btn btn-quiet" to={'/objects' + location.search}>
+            Открыть ведомость
+          </Link>
+        }
+      >
+        Возможно, ссылка устарела или объект недоступен.
+      </Empty>
+    );
+  const p = query.project;
+  return section === 'site' ? (
+    <Site key={p.id} project={p} />
+  ) : section === 'analytics' ? (
+    <Analytics key={p.id} project={p} />
+  ) : section === 'schedule' ? (
+    <Schedule key={p.id} project={p} />
+  ) : (
+    <Settings key={p.id} project={p} />
   );
-
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-
-    setSelectedFile(file);
-    setStatus(file ? "selected" : "initial");
-    setProgress(0);
-    setErrorMessage("");
-    setUploadedUuid("");
+}
+function Shell() {
+  const { mode, changeMode, clearRecordings } = useApp(),
+    query = useObjects(),
+    location = useLocation(),
+    navigate = useNavigate(),
+    reduce = useReducedMotion();
+  const [lastObjectId, setLastObjectId] = useState('north-park');
+  const pathObjectId = location.pathname.startsWith('/objects/')
+    ? location.pathname.split('/')[2]
+    : undefined;
+  useEffect(() => {
+    if (pathObjectId && query.data?.some((project) => project.id === pathObjectId))
+      setLastObjectId(pathObjectId);
+  }, [pathObjectId, query.data]);
+  const objectId = pathObjectId || (mode === 'demo' ? lastObjectId : 'unavailable');
+  const contextSearch = location.search;
+  const route = '/objects/' + encodeURIComponent(objectId);
+  const links = [
+    ['Площадка', route],
+    ['Объекты', '/objects'],
+    ['Соответствие графику', route + '/analytics'],
+    ['График работ', route + '/schedule'],
+    ['Настройки', route + '/settings'],
+  ];
+  const currentTitle = links.find(([, path]) => path === location.pathname)?.[0] ?? 'Стройконтроль';
+  useEffect(() => {
+    document.title = currentTitle + ' · Стройконтроль';
+  }, [currentTitle]);
+  function switchObject(id: string) {
+    const params = new URLSearchParams(location.search);
+    ['camera', 'recording', 't'].forEach((k) => params.delete(k));
+    const section = location.pathname.split('/')[3];
+    navigate('/objects/' + id + (section ? '/' + section : '') + (params.size ? '?' + params : ''));
   }
-
-  async function handleUpload() {
-    if (!selectedFile || isBusy) {
-      return;
-    }
-
-    setProgress(0);
-    setErrorMessage("");
-    setUploadedUuid("");
-
-    let uuid = "";
-    let failedStage: "init" | "storage" = "init";
-
-    try {
-      setStatus("initializing");
-      const uploadData = await initVideoUpload(selectedFile);
-      uuid = uploadData.uuid;
-
-      failedStage = "storage";
-      setStatus("uploading");
-      await uploadVideoToStorage(selectedFile, uploadData, setProgress);
-    } catch (error) {
-      setStatus("error");
-      setErrorMessage(
-        failedStage === "init"
-          ? "Не удалось инициализировать загрузку"
-          : "Не удалось загрузить файл в хранилище"
-      );
-      return;
-    }
-
-    try {
-      setStatus("completing");
-      await completeVideoUpload(uuid);
-
-      setUploadedUuid(uuid);
-      setStatus("success");
-    } catch (error) {
-      setStatus("error");
-      setUploadedUuid(uuid);
-      setErrorMessage(
-        "Видео загружено в хранилище, но не удалось подтвердить завершение загрузки"
-      );
-    }
-  }
-
-  const statusMessage = getStatusMessage(status, selectedFile);
-  const showProgress = status === "uploading" || status === "completing" || status === "success";
-
   return (
-    <main className="page">
-      <section className="upload-card" aria-labelledby="upload-title">
-        <div className="card-header">
-          <p className="eyebrow">PROM APP</p>
-          <h1 id="upload-title">Загрузка видео</h1>
+    <>
+      <a href="#main" className="skip">
+        Перейти к основному содержанию
+      </a>
+      <header className="chrome">
+        <div className="wrap chrome-inner">
+          <Link className="mark" to={'/objects' + contextSearch} aria-label="Стройконтроль — ведомость">
+            <span className="mark-glyph">С</span>
+            <span>
+              <span className="mark-name">Стройконтроль</span>
+              <span className="mark-sub">Мониторинг площадок</span>
+            </span>
+          </Link>
+          <nav className="nav" aria-label="Разделы системы">
+            {links.map(([label, path]) => (
+              <NavLink key={label} end className="navlink" to={path + contextSearch}>
+                {({ isActive }) => (
+                  <>
+                    {label}
+                    {isActive && (
+                      <motion.span
+                        className="nav-indicator"
+                        layoutId={reduce ? undefined : 'active-nav'}
+                        transition={transition(reduce)}
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+          <span className="who-face" title={mode === 'demo' ? 'Демонстрационный профиль' : 'API'}>
+            {mode === 'demo' ? 'ДМ' : 'API'}
+          </span>
         </div>
-
-        <label className="file-picker">
-          <span>Выбрать файл</span>
-          <input type="file" accept="video/*" onChange={handleFileChange} disabled={isBusy} />
-        </label>
-
-        <div className="file-info" aria-live="polite">
-          {selectedFile ? (
-            <>
-              <p>Имя файла: {selectedFile.name}</p>
-              <p>Размер: {readableSize}</p>
-            </>
-          ) : (
-            <p>Файл не выбран</p>
-          )}
-        </div>
-
-        {showProgress && (
-          <div className="progress-block" aria-label="Прогресс загрузки">
-            <progress value={progress} max="100" />
-            <span>{progress}%</span>
-          </div>
+      </header>
+      <div className="wrap contextbar no-print">
+        <span className={'mode-label ' + mode}>
+          {mode === 'demo' ? 'Демонстрационные данные' : 'Рабочее подключение API'}
+        </span>
+        {location.pathname !== '/objects' && query.data && (
+          <label className="object-switch">
+            <span className="sr-only">Выбранный объект</span>
+            <select value={objectId} onChange={(e) => switchObject(e.target.value)}>
+              {!query.data.some((p) => p.id === objectId) && (
+                <option value={objectId}>Объект не найден</option>
+              )}
+              {query.data.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
-
-        <button type="button" onClick={handleUpload} disabled={isUploadDisabled}>
-          Загрузить видео
+        <button className="mode-switch" onClick={() => changeMode(mode === 'demo' ? 'api' : 'demo')}>
+          {mode === 'demo' ? 'Подключение API →' : 'Открыть демо →'}
         </button>
-
-        <div className={`status status-${status}`} aria-live="polite">
-          <p>{statusMessage}</p>
-          {errorMessage && <p className="error-text">{errorMessage}</p>}
-          {uploadedUuid && <p className="uuid">UUID: {uploadedUuid}</p>}
-        </div>
-      </section>
-    </main>
+      </div>
+      <main id="main" className="wrap app-main" tabIndex={-1}>
+        <motion.div key={location.pathname} {...appearance(reduce)}>
+          <Suspense fallback={<QueryState pending />}>
+            <Routes>
+              <Route path="/" element={<Navigate to={'/objects' + contextSearch} replace />} />
+              <Route path="/objects" element={<Objects />} />
+              <Route path="/objects/:objectId" element={<ObjectRoute section="site" />} />
+              <Route path="/objects/:objectId/analytics" element={<ObjectRoute section="analytics" />} />
+              <Route path="/objects/:objectId/schedule" element={<ObjectRoute section="schedule" />} />
+              <Route path="/objects/:objectId/settings" element={<ObjectRoute section="settings" />} />
+              <Route
+                path="*"
+                element={
+                  <Empty
+                    title="Страница не найдена"
+                    action={
+                      <Link className="btn btn-primary" to={'/objects' + contextSearch}>
+                        Перейти к объектам
+                      </Link>
+                    }
+                  >
+                    Проверьте адрес страницы.
+                  </Empty>
+                }
+              />
+            </Routes>
+          </Suspense>
+        </motion.div>
+        {query.error && mode === 'demo' && (
+          <button
+            className="btn btn-quiet"
+            onClick={() => {
+              resetDemo();
+              clearRecordings();
+              void query.refetch();
+            }}
+          >
+            Восстановить исходные демоданные
+          </button>
+        )}
+      </main>
+      <footer className="wrap footer">
+        <span>Стройконтроль · Мониторинг строительства</span>
+        <span>
+          {mode === 'demo'
+            ? 'Демонстрационный срез · 25 августа 2026'
+            : 'API · возможности зависят от серверных контрактов'}
+        </span>
+      </footer>
+    </>
   );
 }
-
-export default App;
+export default function App({ initialMode, apiBase }: { initialMode: Mode; apiBase: string }) {
+  const location = useLocation();
+  const requested = new URLSearchParams(location.search).get('mode');
+  const mode = requested === 'demo' || requested === 'api' ? requested : initialMode;
+  return <ModeSession key={mode} mode={mode} apiBase={apiBase} />;
+}
+function ModeSession({ mode, apiBase }: { mode: Mode; apiBase: string }) {
+  const [recordings, setRecordings] = useState<LocalRecording[]>([]);
+  const ownedUrls = useRef(new Set<string>()),
+    navigate = useNavigate();
+  const clearRecordings = () => {
+    ownedUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    ownedUrls.current.clear();
+    setRecordings([]);
+  };
+  useEffect(() => {
+    const urls = ownedUrls.current;
+    return () => {
+      urls.forEach((url) => URL.revokeObjectURL(url));
+      urls.clear();
+    };
+  }, []);
+  function changeMode(next: Mode) {
+    navigate('/objects?mode=' + next);
+  }
+  function addRecording(recording: LocalRecording) {
+    if (recording.url?.startsWith('blob:')) ownedUrls.current.add(recording.url);
+    setRecordings((items) => [...items, recording]);
+  }
+  return (
+    <AppContext.Provider value={{ mode, apiBase, changeMode, recordings, addRecording, clearRecordings }}>
+      <Shell />
+    </AppContext.Provider>
+  );
+}
