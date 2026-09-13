@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'motion/react';
-import { AppContext, useApp, useObjects, useProject, type LocalRecording } from './app/context';
+import {
+  AppContext,
+  useApp,
+  useObjects,
+  useProject,
+  withoutSourceSelection,
+  type LocalRecording,
+} from './app/context';
 import type { Mode } from './domain/models';
 import { Objects } from './pages/Objects';
 const Site = lazy(() => import('./pages/Site').then((module) => ({ default: module.Site })));
@@ -72,8 +79,7 @@ function Shell() {
     document.title = currentTitle + ' · Стройконтроль';
   }, [currentTitle]);
   function switchObject(id: string) {
-    const params = new URLSearchParams(location.search);
-    ['camera', 'recording', 't'].forEach((k) => params.delete(k));
+    const params = withoutSourceSelection(new URLSearchParams(location.search));
     const section = location.pathname.split('/')[3];
     navigate('/objects/' + id + (section ? '/' + section : '') + (params.size ? '?' + params : ''));
   }

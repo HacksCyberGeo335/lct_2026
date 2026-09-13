@@ -47,6 +47,11 @@ export function useFilters() {
   };
   return { params, update };
 }
+export function withoutSourceSelection(params: URLSearchParams): URLSearchParams {
+  const next = new URLSearchParams(params);
+  ['camera', 'recording', 't'].forEach((key) => next.delete(key));
+  return next;
+}
 export function objectUrl(id: string, section = '', params = new URLSearchParams()) {
   return (
     '/objects/' +

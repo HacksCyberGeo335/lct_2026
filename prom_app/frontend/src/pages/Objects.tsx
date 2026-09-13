@@ -1,6 +1,6 @@
 import { motion, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { useApp, useFilters, useObjects, objectUrl } from '../app/context';
+import { useApp, useFilters, useObjects, objectUrl, withoutSourceSelection } from '../app/context';
 import { statusNames, type Project } from '../domain/models';
 import { QueryState, Empty, StatusStamp } from '../shared/ui';
 import { transition } from '../shared/motion';
@@ -101,7 +101,7 @@ export function Objects() {
           <motion.div key={p.id} layout={reduce ? false : 'position'} transition={transition(reduce)}>
             <Link
               className="reg-row"
-              to={objectUrl(p.id, '', params)}
+              to={objectUrl(p.id, '', withoutSourceSelection(params))}
               aria-label={p.number.toString().padStart(2, '0') + ' ' + p.name}
             >
               <span className="reg-idx">{p.number.toString().padStart(2, '0')}</span>

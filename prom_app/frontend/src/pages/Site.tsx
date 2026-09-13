@@ -81,7 +81,11 @@ export function Site({ project }: { project: Project }) {
         </label>
         <label className="field compact">
           Источник
-          <select value={sourceId} onChange={(e) => update({ recording: e.target.value, t: null })}>
+          <select
+            aria-label="Источник"
+            value={sourceId}
+            onChange={(e) => update({ recording: e.target.value, t: null })}
+          >
             {!recording && <option value={sourceId}>Запись недоступна</option>}
             <option value="sample">Демовидео · 25.08.2026</option>
             <option value="sample-stills">Серия демоснимков · 25.08.2026</option>

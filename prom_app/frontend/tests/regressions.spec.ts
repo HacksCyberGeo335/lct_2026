@@ -1,5 +1,45 @@
 import { expect, test } from '@playwright/test';
 
+test('MP4 demo upload plays without backend and changing objects clears the previous source', async ({
+  page,
+}) => {
+  const backendRequests: string[] = [],
+    errors: string[] = [];
+  page.on('request', (request) => {
+    if (
+      /^\/(api\/|health$)/.test(new URL(request.url()).pathname) ||
+      ['POST', 'PUT'].includes(request.method())
+    )
+      backendRequests.push(request.method() + ' ' + request.url());
+  });
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/objects/north-park?mode=demo&camera=3');
+  await page.getByRole('button', { name: '+ Загрузить запись', exact: true }).click();
+  await page.getByLabel('Файл записи').setInputFiles('tests/fixtures/sample-h264.mp4');
+  await page.getByRole('button', { name: 'Открыть локально', exact: true }).click();
+  await page.getByRole('button', { name: 'Перейти к записи', exact: true }).click();
+  const video = page.locator('.media-host video');
+  await expect(video).toHaveAttribute('src', /^blob:/);
+  await expect.poll(() => video.evaluate((element) => (element as HTMLVideoElement).duration)).toBe(3);
+  await page.getByRole('button', { name: 'Воспроизвести', exact: true }).click();
+  await expect
+    .poll(() => video.evaluate((element) => (element as HTMLVideoElement).currentTime))
+    .toBeGreaterThan(0.2);
+  await page.getByRole('button', { name: 'Пауза', exact: true }).click();
+  await expect(page.getByTestId('detection')).toHaveCount(0);
+  await page.getByRole('navigation').getByRole('link', { name: 'Объекты', exact: true }).click();
+  await page.getByRole('link', { name: '02 ЖК «Речной квартал», корпус 1', exact: true }).click();
+  await expect(page.getByLabel('Камера', { exact: true })).toHaveValue('1');
+  await expect(page.getByLabel('Источник', { exact: true })).toHaveValue('sample');
+  await expect(video).toHaveAttribute('src', '/media/river-quarter-1.webm');
+  expect(new URL(page.url()).searchParams.has('recording')).toBe(false);
+  await page.goBack();
+  await page.goBack();
+  await expect(video).toHaveAttribute('src', /^blob:/);
+  expect(backendRequests).toEqual([]);
+  expect(errors).toEqual([]);
+});
+
 test('zero-time deep links, saved seek positions and fresh uploads start at the selected time', async ({
   page,
 }) => {
