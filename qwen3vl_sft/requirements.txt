@@ -1,0 +1,10 @@
+torch
+transformers
+trl
+peft
+datasets
+accelerate
+mlflow
+pillow
+pandas
+
