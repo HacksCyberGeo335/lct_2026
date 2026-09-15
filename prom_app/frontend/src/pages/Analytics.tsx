@@ -1,7 +1,8 @@
+import { Link } from 'react-router-dom';
 import { PlanRecovery } from '../features/import/PlanRecovery';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useApp, useFilters } from '../app/context';
+import { useApp, useFilters, objectUrl } from '../app/context';
 import { source } from '../api/source';
 import {
   deltaText,
@@ -50,6 +51,10 @@ export function Analytics({ project }: { project: Project }) {
           Печать / сохранить PDF
         </button>
       </ObjectHeader>
+      <p className="inspection-notice no-print">
+        Проценты ниже — модельный прогресс. Проверка необходимой и несоответствующей техники:{' '}
+        <Link to={objectUrl(project.id, 'inspection', params)}>Снимки и отклонения →</Link>
+      </p>
       <div className="report-period">
         <p>
           Объект: <b>{project.name}</b>
@@ -119,7 +124,7 @@ export function Analytics({ project }: { project: Project }) {
                 <th>Факт на дату среза</th>
                 <th>План / факт, %</th>
                 <th>Отклонение</th>
-                <th>Статус</th>
+                <th>Модельный прогресс</th>
               </tr>
             </thead>
             <tbody>

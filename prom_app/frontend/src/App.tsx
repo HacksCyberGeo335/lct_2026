@@ -9,6 +9,8 @@ import {
   withoutSourceSelection,
   type LocalRecording,
 } from './app/context';
+import { InspectionProvider } from './features/inspection/session';
+const Inspection = lazy(() => import('./pages/Inspection').then((m) => ({ default: m.Inspection })));
 import type { Mode } from './domain/models';
 import { Objects } from './pages/Objects';
 const Site = lazy(() => import('./pages/Site').then((module) => ({ default: module.Site })));
@@ -19,11 +21,15 @@ import { ApiWorkspace } from './pages/ApiWorkspace';
 import { Empty, QueryState } from './shared/ui';
 import { appearance, transition } from './shared/motion';
 
-function ObjectRoute({ section }: { section: 'site' | 'analytics' | 'schedule' | 'settings' }) {
+function ObjectRoute({
+  section,
+}: {
+  section: 'site' | 'analytics' | 'schedule' | 'settings' | 'inspection';
+}) {
   const { mode } = useApp(),
     query = useProject(),
     location = useLocation();
-  if (mode === 'api') return <ApiWorkspace section={section} />;
+  if (mode === 'api') return section === 'inspection' ? <Inspection /> : <ApiWorkspace section={section} />;
   if (query.isPending || query.error)
     return <QueryState pending={query.isPending} error={query.error} retry={() => void query.refetch()} />;
   if (!query.project)
@@ -40,7 +46,9 @@ function ObjectRoute({ section }: { section: 'site' | 'analytics' | 'schedule' |
       </Empty>
     );
   const p = query.project;
-  return section === 'site' ? (
+  return section === 'inspection' ? (
+    <Inspection key={p.id} project={p} />
+  ) : section === 'site' ? (
     <Site key={p.id} project={p} />
   ) : section === 'analytics' ? (
     <Analytics key={p.id} project={p} />
@@ -70,6 +78,7 @@ function Shell() {
   const links = [
     ['Площадка', route],
     ['Объекты', '/objects'],
+    ['Снимки и отклонения', route + '/inspection'],
     ['Соответствие графику', route + '/analytics'],
     ['График работ', route + '/schedule'],
     ['Настройки', route + '/settings'],
@@ -152,6 +161,7 @@ function Shell() {
               <Route path="/objects/:objectId" element={<ObjectRoute section="site" />} />
               <Route path="/objects/:objectId/analytics" element={<ObjectRoute section="analytics" />} />
               <Route path="/objects/:objectId/schedule" element={<ObjectRoute section="schedule" />} />
+              <Route path="/objects/:objectId/inspection" element={<ObjectRoute section="inspection" />} />
               <Route path="/objects/:objectId/settings" element={<ObjectRoute section="settings" />} />
               <Route
                 path="*"
@@ -214,7 +224,9 @@ function ModeSession({ mode, apiBase }: { mode: Mode; apiBase: string }) {
   }
   return (
     <AppContext.Provider value={{ mode, apiBase, changeMode, recordings, addRecording, clearRecordings }}>
-      <Shell />
+      <InspectionProvider>
+        <Shell />
+      </InspectionProvider>
     </AppContext.Provider>
   );
 }

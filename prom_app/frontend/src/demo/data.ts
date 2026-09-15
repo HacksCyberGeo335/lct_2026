@@ -1,5 +1,28 @@
+import { leafStages, type ResourceRequirement } from '../domain/plan';
 import { referenceObjects } from './reference';
 import { CAPTURED, SNAPSHOT, day, isoDay, type Project, type Report, type Stage } from '../domain/models';
+
+// Explicit illustrative rules, never assigned by stage order. Unspecified stages have no rule.
+const demoRules: Record<string, ResourceRequirement[]> = {
+  'Земляные работы': [
+    { equipment: 'exc', quantity: 1 },
+    { equipment: 'dump', quantity: 2 },
+  ],
+  'Устройство фундамента': [
+    { equipment: 'mixer', quantity: 3 },
+    { equipment: 'crane', quantity: 1 },
+  ],
+  'Монтаж каркаса': [{ equipment: 'crane', quantity: 1 }],
+  'Подготовительные работы': [
+    { equipment: 'dozer', quantity: 1 },
+    { equipment: 'truck', quantity: 1 },
+  ],
+};
+const activeLabel = (stages: Stage[]) =>
+  leafStages(stages)
+    .filter((s) => s.start <= SNAPSHOT && s.end >= SNAPSHOT)
+    .map((s) => s.name)
+    .join('; ') || 'Нет активных этапов на дату среза';
 
 // Reference names and illustrative progress are retained; every fact shares one cutoff.
 export const projects: Project[] = Object.entries(referenceObjects).map(([id, raw], index) => {
@@ -12,21 +35,24 @@ export const projects: Project[] = Object.entries(referenceObjects).map(([id, ra
     const start = isoDay(origin + i * 48),
       end = isoDay(origin + i * 48 + 56);
     const beforeCutoff = start <= SNAPSHOT;
+    const resources = demoRules[s.name] ?? [];
     return {
       id: id + '-' + (i + 1),
       name: s.name,
       start,
       end,
       zone: 'Зона ' + String.fromCharCode(65 + i),
-      equipment: i === 0 ? 'exc' : i === 1 ? 'mixer' : 'crane',
-      quantity: i + 2,
+      equipment: resources[0]?.equipment ?? null,
+      quantity: resources[0]?.quantity ?? null,
+      resources,
+      parentId: null,
+      rulePolicy: 'required-and-unexpected',
       actualStart: beforeCutoff && s.fact > 0 ? start : null,
       actualEnd: s.fact === 100 && end <= SNAPSHOT ? end : null,
       plan: beforeCutoff ? s.plan : 0,
       fact: beforeCutoff ? s.fact : 0,
     };
   });
-  const active = stages.find((s) => s.name === raw.stage) ?? stages[0];
   return {
     id,
     number: index + 1,
@@ -35,7 +61,7 @@ export const projects: Project[] = Object.entries(referenceObjects).map(([id, ra
     permit: raw.permit,
     programme: raw.programme,
     status: raw.status,
-    stage: active?.name ?? raw.stage,
+    stage: activeLabel(stages),
     progress: raw.progress,
     cameras: raw.cams.map((camera, ci) => ({
       id: String(camera.id),
@@ -63,7 +89,9 @@ export const projects: Project[] = Object.entries(referenceObjects).map(([id, ra
 });
 
 export function createReport(project: Project, period: number): Report {
-  const current = project.stages.filter((s) => s.start <= SNAPSHOT && s.plan !== null && s.fact !== null);
+  const current = leafStages(project.stages).filter(
+    (s) => s.start <= SNAPSHOT && s.plan !== null && s.fact !== null,
+  );
   // Duration-weighted model example, never inferred from machine counts.
   const weight = current.reduce((sum, s) => sum + day(s.end) - day(s.start) + 1, 0);
   if (!weight)
@@ -103,6 +131,5 @@ export function createReport(project: Project, period: number): Report {
   };
 }
 export function projectWithStages(project: Project, stages: Stage[]) {
-  const active = stages.find((s) => s.name === project.stage) ?? stages[0];
-  return { ...project, stages, stage: active?.name ?? 'Нет этапов' };
+  return { ...project, stages, stage: activeLabel(stages) };
 }

@@ -2,13 +2,28 @@ import { z } from 'zod';
 
 export type Mode = 'demo' | 'api';
 export type Status = 'ok' | 'warn' | 'idle';
-export const equipmentClass = z.enum(['exc', 'dump', 'crane', 'mixer']);
+export const equipmentClass = z.enum([
+  'exc',
+  'dump',
+  'crane',
+  'mixer',
+  'roller',
+  'manipulator',
+  'dozer',
+  'truck',
+  'mobile_crane',
+]);
 export type EquipmentClass = z.infer<typeof equipmentClass>;
 export const classes: Record<EquipmentClass, { label: string; plural: string; color: string }> = {
   exc: { label: 'Экскаватор', plural: 'Экскаваторы', color: '#0E5A53' },
   dump: { label: 'Самосвал', plural: 'Самосвалы', color: '#35618C' },
   crane: { label: 'Кран', plural: 'Краны', color: '#8B610E' },
   mixer: { label: 'Бетоносмеситель', plural: 'Бетоносмесители', color: '#77475F' },
+  roller: { label: 'Каток', plural: 'Катки', color: '#725228' },
+  manipulator: { label: 'Кран-манипулятор', plural: 'Краны-манипуляторы', color: '#465E85' },
+  dozer: { label: 'Бульдозер', plural: 'Бульдозеры', color: '#7D4736' },
+  truck: { label: 'Грузовик', plural: 'Грузовики', color: '#54652A' },
+  mobile_crane: { label: 'Автокран', plural: 'Автокраны', color: '#654779' },
 };
 export const dateSchema = z
   .string()
@@ -24,6 +39,12 @@ export const stageSchema = z
     start: dateSchema,
     end: dateSchema,
     zone: z.string(),
+    parentId: z.string().min(1).nullable().optional(),
+    resources: z
+      .array(z.object({ equipment: equipmentClass, quantity: z.number().int().min(1).max(1000000) }))
+      .max(9)
+      .optional(),
+    rulePolicy: z.enum(['required-only', 'required-and-unexpected']).optional(),
     equipment: equipmentClass.nullable(),
     quantity: z.number().int().nonnegative().nullable(),
     actualStart: dateSchema.nullable(),
@@ -33,6 +54,12 @@ export const stageSchema = z
   })
   .refine((s) => s.start <= s.end, 'Начало позже окончания');
 export type Stage = z.infer<typeof stageSchema>;
+export function equipmentInfo(id: string) {
+  const known = equipmentClass.safeParse(id);
+  return known.success
+    ? classes[known.data]
+    : { label: 'Неизвестный класс: ' + id, plural: 'Неизвестный класс: ' + id, color: '#545E59' };
+}
 export const settingsSchema = z.object({
   deviations: z.boolean(),
   cameras: z.boolean(),

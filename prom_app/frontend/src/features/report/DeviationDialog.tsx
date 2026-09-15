@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
-import { classes, deltaText, formatDate, type Project, type Stage } from '../../domain/models';
+import { equipmentInfo, formatDate, type Project, type Stage } from '../../domain/models';
+import { resourcesOf } from '../../domain/plan';
+import { evaluateFrame } from '../../domain/inspection';
+import { useInspectionSession } from '../inspection/session';
+import { AssessmentCard } from '../inspection/AssessmentCard';
 import { useFilters, objectUrl } from '../../app/context';
 import { Modal } from '../../shared/ui';
 export function DeviationDialog({
@@ -12,21 +16,29 @@ export function DeviationDialog({
   onClose: () => void;
 }) {
   const { params } = useFilters(),
-    camera = project.cameras.find((c) => c.available);
-  const observed =
-    stage?.equipment && camera
-      ? camera.boxes.filter((d) => d.cls === stage.equipment && d.from <= 15 && d.to > 15).length
-      : null;
-  const evidence = new URLSearchParams(params);
-  evidence.set('camera', camera?.id ?? '');
-  evidence.set('recording', 'sample');
-  evidence.set('t', '15');
+    { session } = useInspectionSession(project.id);
+  const observations = stage
+    ? session.frames.flatMap((frame) =>
+        evaluateFrame(project.stages, frame)
+          .filter(
+            (a) =>
+              a.stage.id === stage.id &&
+              !['inactive', 'other-zone'].includes(a.status) &&
+              frame.result !== null,
+          )
+          .map((a) => ({ frame, assessment: a })),
+      )
+    : [];
+  const target = new URLSearchParams(params);
+  if (stage) target.set('stage', stage.id);
+  target.delete('image');
+  target.set('plan', 'calendar');
   return (
     <Modal
       open={!!stage}
       onClose={onClose}
       title={stage?.name ?? 'Подробности этапа'}
-      description="Основания и ограничения модельного примера отклонения."
+      description="Требования плана и результаты по снимкам, связанным с этим этапом по дате и зоне."
     >
       {stage && (
         <>
@@ -41,47 +53,49 @@ export function DeviationDialog({
               <dt>Зона работ</dt>
               <dd>{stage.zone || 'Не задана'}</dd>
             </div>
-            <div>
-              <dt>Расхождение факта и плана</dt>
-              <dd>
-                {deltaText(stage.fact !== null && stage.plan !== null ? stage.fact - stage.plan : null)}
-              </dd>
-            </div>
-            <div>
-              <dt>Ожидаемые ресурсы</dt>
-              <dd>
-                {stage.equipment ? classes[stage.equipment].plural : 'Не заданы'} · {stage.quantity ?? '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>В доступном снимке</dt>
-              <dd>
-                {observed ?? 'Нет наблюдений'} {observed === null ? '' : 'единиц'}
-              </dd>
-            </div>
-            <div>
-              <dt>Полнота наблюдений объекта</dt>
-              <dd>
-                {project.coverage === null
-                  ? 'Нет наблюдений'
-                  : project.coverage + '% · демонстрационный показатель'}
-              </dd>
-            </div>
           </dl>
-          <p className="sub">
-            Срез 25.08.2026, UTC+3. Снимок отражает одну камеру в один момент и не доказывает отсутствие
-            техники вне кадра. Возможная нехватка ресурсов требует проверки на площадке. Confidence детектора
-            не равен вероятности выполнения работ.
-          </p>
-          {stage.fact === null ? (
-            <p>Импортирован только план. Фактических наблюдений для этого этапа ещё нет.</p>
-          ) : camera ? (
-            <Link className="btn btn-primary" to={objectUrl(project.id, '', evidence)} onClick={onClose}>
-              Открыть кадр-основание · 00:15 →
-            </Link>
+          <h3>Необходимая техника</h3>
+          {resourcesOf(stage).length ? (
+            <ul>
+              {resourcesOf(stage).map((r) => (
+                <li key={r.equipment}>
+                  {equipmentInfo(r.equipment).plural}: {r.quantity}
+                </li>
+              ))}
+            </ul>
           ) : (
-            <p>Кадры-основания недоступны.</p>
+            <p>Правило для этого этапа не задано или это сводный этап.</p>
           )}
+          {observations.length ? (
+            observations.map(({ frame, assessment }) => {
+              const evidence = new URLSearchParams(target);
+              evidence.set('image', frame.id);
+              return (
+                <div key={frame.id}>
+                  <AssessmentCard assessment={assessment} />
+                  <Link
+                    className="btn btn-quiet"
+                    to={objectUrl(project.id, 'inspection', evidence)}
+                    onClick={onClose}
+                  >
+                    Открыть снимок-основание: {frame.name} →
+                  </Link>
+                </div>
+              );
+            })
+          ) : (
+            <p>
+              Подходящих снимков с результатами для этого этапа пока нет. Проценты модельного прогресса не
+              подтверждают наличие или отсутствие техники.
+            </p>
+          )}
+          <Link
+            className="btn btn-primary"
+            to={objectUrl(project.id, 'inspection', target)}
+            onClick={onClose}
+          >
+            Проверить снимки для этапа →
+          </Link>
         </>
       )}
     </Modal>

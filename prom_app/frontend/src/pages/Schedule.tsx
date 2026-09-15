@@ -1,3 +1,4 @@
+import { orderedStages } from '../domain/plan';
 import { PlanRecovery } from '../features/import/PlanRecovery';
 import { useState } from 'react';
 import { day, isoDay, formatDate, SNAPSHOT, type Project, type Stage, stageStatus } from '../domain/models';
@@ -48,14 +49,15 @@ export function Schedule({ project }: { project: Project }) {
                   ))}
                 </div>
               </div>
-              {project.stages.map((s) => (
+              {orderedStages(project.stages).map(({ stage: s, depth, summary }) => (
                 <button
                   className="gantt-row"
                   key={s.id}
                   onClick={() => setDetail(s)}
                   aria-label={'Подробности: ' + s.name}
                 >
-                  <span className="gantt-name">
+                  <span className="gantt-name" style={{ paddingInlineStart: depth * 20 }}>
+                    {summary ? '▾ ' : ''}
                     {s.name}
                     <small>{s.zone || 'Зона не задана'}</small>
                   </span>

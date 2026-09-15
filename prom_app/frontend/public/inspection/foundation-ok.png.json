@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "image": {
+    "name": "foundation-ok.png",
+    "width": 1280,
+    "height": 720,
+    "sha256": "d3dd6b75acc0b1434cd1d7daf72a8ffbb155e21af327e009ad02c1c4d2e85441"
+  },
+  "captured_at": "2026-08-25T11:19:37.000Z",
+  "camera_id": "3",
+  "zone": "Б",
+  "state": "succeeded",
+  "model": "Синтетический пример, не ML",
+  "quality": {
+    "usable": true,
+    "reason": ""
+  },
+  "error": null,
+  "detections": [
+    {
+      "id": "north-park-3-0",
+      "class_id": "mixer",
+      "confidence": 0.95,
+      "bbox": [
+        0.229,
+        0.3,
+        0.24,
+        0.34
+      ]
+    },
+    {
+      "id": "north-park-3-1",
+      "class_id": "crane",
+      "confidence": 0.9,
+      "bbox": [
+        0.58,
+        0.12,
+        0.12,
+        0.54
+      ]
+    }
+  ]
+}

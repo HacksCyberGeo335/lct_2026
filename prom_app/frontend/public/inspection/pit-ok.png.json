@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "image": {
+    "name": "pit-ok.png",
+    "width": 1280,
+    "height": 720,
+    "sha256": "ee0698e7308a7619f20d710d817639d7b191f2d9a0c086fc00ee89e84da08b7f"
+  },
+  "captured_at": "2026-08-25T11:19:37.000Z",
+  "camera_id": "2",
+  "zone": "А",
+  "state": "succeeded",
+  "model": "Синтетический пример, не ML",
+  "quality": {
+    "usable": true,
+    "reason": ""
+  },
+  "error": null,
+  "detections": [
+    {
+      "id": "north-park-2-0",
+      "class_id": "dump",
+      "confidence": 0.92,
+      "bbox": [
+        0.14900000000000002,
+        0.41,
+        0.22,
+        0.28
+      ]
+    },
+    {
+      "id": "north-park-2-1",
+      "class_id": "exc",
+      "confidence": 0.88,
+      "bbox": [
+        0.486,
+        0.36,
+        0.18,
+        0.31
+      ]
+    },
+    {
+      "id": "north-park-2-2",
+      "class_id": "dump",
+      "confidence": 0.81,
+      "bbox": [
+        0.713,
+        0.52,
+        0.16,
+        0.21
+      ]
+    }
+  ]
+}

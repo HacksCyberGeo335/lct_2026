@@ -56,3 +56,33 @@ describe('CSV boundary', () => {
     expect(validateRows(input, mapping).errors[0].message).toContain('нескольким');
   });
 });
+
+describe('new plan requirements', () => {
+  it('preserves multiple resources and the selected rule', () => {
+    const p = validate(
+      'id,name,start,end,zone,resources,policy\npit,Котлован,2026-08-01,2026-08-31,А,exc:1|dump:2,required-only',
+    );
+    expect(p.errors).toEqual([]);
+    expect(p.stages[0].resources).toEqual([
+      { equipment: 'exc', quantity: 1 },
+      { equipment: 'dump', quantity: 2 },
+    ]);
+    expect(p.stages[0].rulePolicy).toBe('required-only');
+  });
+  it('preserves hierarchy and rejects missing parents, cycles and invalid child dates', () => {
+    const text =
+      'id,parent_id,name,start,end,zone,resources\nroot,,Стройка,2026-08-01,2026-09-30,,\npit,root,Котлован,2026-08-01,2026-08-31,А,exc:1|dump:2';
+    expect(validate(text).errors).toEqual([]);
+    expect(validate(text).stages[1].parentId).toBe('root');
+    expect(validate(text.replace('pit,root,', 'pit,missing,')).errors[0].message).toContain('не найден');
+    expect(validate(text.replace('root,,', 'root,pit,')).errors.some((e) => e.message.includes('Цикл'))).toBe(
+      true,
+    );
+    expect(validate(text.replace('2026-08-31', '2026-10-31')).errors[0].message).toContain('период');
+  });
+  it('rejects duplicate resources and accepts all supported equipment classes', () => {
+    const csv = 'name,start,end,resources\nЭтап,2026-08-01,2026-08-31,';
+    expect(validate(csv + 'exc:1|exc:2').errors.length).toBeGreaterThan(0);
+    expect(validate(csv + 'roller:1|dozer:1|truck:2|manipulator:1|mobile_crane:1').errors).toEqual([]);
+  });
+});

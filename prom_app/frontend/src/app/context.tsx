@@ -49,7 +49,7 @@ export function useFilters() {
 }
 export function withoutSourceSelection(params: URLSearchParams): URLSearchParams {
   const next = new URLSearchParams(params);
-  ['camera', 'recording', 't'].forEach((key) => next.delete(key));
+  ['camera', 'recording', 't', 'image', 'stage'].forEach((key) => next.delete(key));
   return next;
 }
 export function objectUrl(id: string, section = '', params = new URLSearchParams()) {

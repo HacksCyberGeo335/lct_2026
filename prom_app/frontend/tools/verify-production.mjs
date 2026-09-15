@@ -1,4 +1,4 @@
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 import { writeFileSync } from 'node:fs';
 const base = process.env.PRODUCTION_URL || 'http://127.0.0.1:4180';
 const browser = await chromium.launch({ headless: true });
@@ -11,6 +11,7 @@ for (const path of [
   '/objects/north-park',
   '/objects/north-park/analytics',
   '/objects/north-park/schedule',
+  '/objects/north-park/inspection',
   '/objects/north-park/settings',
 ]) {
   const response = await page.goto(base + path + '?mode=demo');
@@ -22,6 +23,8 @@ for (const path of [
   '/api',
   '/api/videos/unsupported',
   '/media/missing.webm',
+  '/inspection/missing.png',
+  '/inspection/missing.json',
   '/assets/missing.js',
   '/fonts/missing.woff2',
 ]) {
@@ -40,6 +43,11 @@ results.push({ videoDuration: await page.locator('video').evaluate((v) => v.dura
 await page.reload();
 await page.getByRole('heading', { level: 1 }).waitFor();
 await page.screenshot({ path: 'artifacts/production-site.png', fullPage: true });
+await page.goto(base + '/objects/north-park/inspection?mode=demo');
+await page.getByRole('button', { name: 'Загрузить пример ТЗ', exact: true }).click();
+await expect(page.getByTestId('assessment')).toContainText('Не хватает необходимой техники');
+await expect(page.getByTestId('image-detection')).toHaveCount(1);
+results.push({ inspectionDemo: 'PNG, result and resource assessment loaded through nginx' });
 await browser.close();
 if (errors.length) throw new Error(errors.join('\n'));
 writeFileSync('artifacts/production-checks.json', JSON.stringify(results, null, 2));

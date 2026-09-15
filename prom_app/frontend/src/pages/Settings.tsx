@@ -1,3 +1,4 @@
+import { useClearInspections } from '../features/inspection/session';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../app/context';
@@ -7,6 +8,7 @@ import type { Project, Settings as SettingsModel } from '../domain/models';
 import { ObjectHeader } from '../shared/ObjectHeader';
 import { Modal, Notice, QueryState } from '../shared/ui';
 export function Settings({ project }: { project: Project }) {
+  const clearInspections = useClearInspections();
   const { mode, clearRecordings } = useApp(),
     client = useQueryClient(),
     [reset, setReset] = useState(false),
@@ -30,6 +32,7 @@ export function Settings({ project }: { project: Project }) {
     try {
       resetDemo();
       clearRecordings();
+      clearInspections();
       await client.invalidateQueries({ queryKey: ['demo'] });
       setReset(false);
       setMessage('Демосостояние сброшено.');
@@ -142,7 +145,7 @@ export function Settings({ project }: { project: Project }) {
         open={reset}
         onClose={() => setReset(false)}
         title="Сбросить демосостояние?"
-        description="Будут восстановлены исходные планы и настройки всех демообъектов, локальные записи исчезнут из сеанса. Файлы на диске и данные API сохранятся."
+        description="Будут восстановлены исходные планы и настройки всех демообъектов, локальные записи и снимки исчезнут из сеанса. Файлы на диске и данные API сохранятся."
       >
         {resetError && (
           <p className="error-text" role="alert">

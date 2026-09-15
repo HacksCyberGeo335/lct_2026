@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import { dateSchema, equipmentClass, type Stage } from '../../domain/models';
+import { validatePlan } from '../../domain/plan';
 export const columns = {
   name: 'Название этапа',
   start: 'Начало',
@@ -8,6 +9,9 @@ export const columns = {
   zone: 'Зона',
   equipment: 'Класс техники',
   quantity: 'Количество',
+  resources: 'Ресурсы',
+  parent_id: 'ID родителя',
+  policy: 'Правило',
 };
 export type Mapping = Record<keyof typeof columns, string>;
 export interface CsvInput {
@@ -96,6 +100,9 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
       id = get('id') || 'import-' + (i + 1),
       qty = get('quantity'),
       cls = get('equipment');
+    const resourceText = get('resources');
+    const resources: NonNullable<Stage['resources']> = [];
+    const policy = get('policy') || 'required-and-unexpected';
     const messages: string[] = [];
     if (row.length !== input.headers.length) messages.push('Число полей не совпадает с заголовком');
     if (!name) messages.push('Название обязательно');
@@ -104,7 +111,41 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
     else if (start > end) messages.push('Начало позже окончания');
     if (qty && (!/^\d+$/.test(qty) || !Number.isSafeInteger(Number(qty))))
       messages.push('Количество — целое неотрицательное число');
-    if (cls && !equipmentClass.safeParse(cls).success) messages.push('Класс: exc, dump, crane или mixer');
+    if (cls && !equipmentClass.safeParse(cls).success) messages.push('Неизвестный класс техники: ' + cls);
+    if (resourceText && (cls || qty))
+      messages.push('Используйте Ресурсы либо Класс техники / Количество, не оба формата.');
+    if (!['required-only', 'required-and-unexpected'].includes(policy))
+      messages.push('Правило: required-only или required-and-unexpected');
+    if (resourceText) {
+      for (const token of resourceText.split('|')) {
+        const [equipment, amount, extra] = token
+          .trim()
+          .split(':')
+          .map((s) => s.trim());
+        const known = equipmentClass.safeParse(equipment);
+        if (
+          !known.success ||
+          !/^[1-9]\d*$/.test(amount ?? '') ||
+          Number(amount) > 1000000 ||
+          extra !== undefined
+        ) {
+          messages.push('Ресурсы: класс:количество через |, например exc:1|dump:2');
+          break;
+        }
+        resources.push({ equipment: known.data, quantity: Number(amount) });
+      }
+    } else if (
+      equipmentClass.safeParse(cls).success &&
+      qty &&
+      Number(qty) > 0 &&
+      Number.isSafeInteger(Number(qty)) &&
+      Number(qty) <= 1000000
+    ) {
+      resources.push({ equipment: equipmentClass.parse(cls), quantity: Number(qty) });
+    }
+    if (qty && Number(qty) > 1000000) messages.push('Количество не более 1000000');
+    if (new Set(resources.map((r) => r.equipment)).size !== resources.length)
+      messages.push('Класс техники повторяется в ресурсах');
     if (qty && !cls) messages.push('Для количества укажите класс техники');
     const signature = JSON.stringify([name.toLowerCase(), start, end, get('zone').toLowerCase()]);
     if (ids.has(id) || signatures.has(signature)) messages.push('Дублирующийся ID или этап');
@@ -118,6 +159,9 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
         start,
         end,
         zone: get('zone'),
+        parentId: get('parent_id') || null,
+        resources,
+        rulePolicy: policy as Stage['rulePolicy'],
         equipment: cls ? equipmentClass.parse(cls) : null,
         quantity: qty ? Number(qty) : null,
         actualStart: null,
@@ -126,11 +170,17 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
         fact: null,
       });
   });
+  if (!errors.length) {
+    for (const issue of validatePlan(stages)) {
+      const index = stages.findIndex((s) => s.id === issue.id);
+      errors.push({ row: input.lineNumbers[Math.max(0, index)] ?? input.headerLine, message: issue.message });
+    }
+  }
   if (!input.rows.length) errors.push({ row: 2, message: 'Нет строк с этапами' });
   return { stages, errors };
 }
 export const template =
-  '\uFEFFid,name,start,end,zone,equipment,quantity\r\nstage-1,Земляные работы,2026-09-01,2026-09-30,А,exc,2\r\nstage-2,Устройство фундамента,2026-09-15,2026-10-20,Б,mixer,3\r\n';
+  '\uFEFFid,parent_id,name,start,end,zone,resources,policy\r\nstage-1,,Земляные работы,2026-09-01,2026-09-30,А,exc:1|dump:2,required-and-unexpected\r\nstage-2,,Устройство фундамента,2026-09-15,2026-10-20,Б,mixer:3|crane:1,required-only\r\n';
 export function downloadTemplate() {
   const url = URL.createObjectURL(new Blob([template], { type: 'text/csv;charset=utf-8' }));
   const anchor = document.createElement('a');

@@ -1,0 +1,217 @@
+.inspection-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.inspection-file {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  min-height: 44px;
+}
+.inspection-file input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+.inspection-file:focus-within {
+  outline: 3px solid var(--ok);
+  outline-offset: 3px;
+}
+.inspection-method {
+  margin: 24px 0;
+}
+.inspection-method summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+}
+.inspection-method p {
+  max-width: 90ch;
+  line-height: 1.6;
+  margin-block: 12px;
+}
+.inspection-method table {
+  min-width: 680px;
+}
+.inspection-filmstrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-block: 24px;
+}
+.inspection-thumb {
+  width: 174px;
+  background: var(--paper, #fafbf7);
+  border: 1px solid var(--line, #c9cdc7);
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.inspection-thumb[aria-pressed='true'] {
+  outline: 3px solid var(--ok);
+  outline-offset: 2px;
+}
+.inspection-thumb img {
+  width: 100%;
+  height: 88px;
+  object-fit: contain;
+  background: #e5e8df;
+}
+.inspection-thumb span,
+.inspection-thumb small {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 6px;
+  font-size: 13px;
+}
+.inspection-thumb small {
+  color: var(--ink-2);
+}
+.inspection-board {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: start;
+  margin-block: 24px;
+}
+.inspection-viewer,
+.inspection-result {
+  min-width: 0;
+}
+.inspection-viewer h2 {
+  overflow-wrap: anywhere;
+}
+.inspection-viewer table,
+.assessment-card table {
+  min-width: 0;
+  table-layout: fixed;
+}
+.inspection-viewer td,
+.inspection-viewer th,
+.assessment-card td,
+.assessment-card th {
+  overflow-wrap: anywhere;
+  padding-inline: 8px;
+}
+.assessment-card th:first-child {
+  width: 44%;
+}
+.inspection-image {
+  position: relative;
+  width: 100%;
+  background: #e5e8df;
+}
+.inspection-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.inspection-image svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.inspection-result .detail-grid {
+  grid-template-columns: 1fr;
+}
+.inspection-result dd {
+  overflow-wrap: anywhere;
+}
+.inspection-result input[type='file'] {
+  max-width: 100%;
+}
+.inspection-result button {
+  white-space: normal;
+  min-height: 44px;
+}
+.inspection-result p,
+.assessment-card p {
+  line-height: 1.6;
+}
+.assessment-card {
+  border: 1px solid var(--line, #c9cdc7);
+  border-left: 4px solid var(--ink-3);
+  border-radius: 8px;
+  padding: 20px;
+}
+.assessment-card h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.assessment-card p {
+  margin-block: 12px;
+}
+.assessment-card.warning {
+  border-left-color: var(--warn);
+}
+.assessment-card.ok {
+  border-left-color: var(--ok);
+}
+.assessment-card .section-heading {
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.assessment-status {
+  font-size: 14px;
+}
+.assessment-card.warning .assessment-status {
+  color: var(--warn);
+}
+.assessment-card.ok .assessment-status {
+  color: var(--ok);
+}
+.inspection-notice {
+  padding: 16px 0;
+  line-height: 1.6;
+}
+.inspection-notice a {
+  font-weight: 600;
+  text-decoration: underline;
+}
+@media (max-width: 1400px) {
+  .chrome-inner {
+    flex-wrap: wrap;
+    height: auto;
+    padding-block: 12px;
+  }
+  .nav {
+    order: 3;
+    flex-basis: 100%;
+    margin-top: 8px;
+  }
+  .who-face {
+    margin-left: auto;
+  }
+}
+@media (max-width: 960px) {
+  .inspection-board {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .inspection-thumb {
+    width: calc(50% - 6px);
+  }
+  .inspection-actions {
+    align-items: stretch;
+  }
+  .inspection-actions > *,
+  .inspection-actions .actions {
+    width: 100%;
+  }
+  .inspection-actions .actions {
+    flex-wrap: wrap;
+  }
+  .assessment-card {
+    padding: 12px;
+  }
+}

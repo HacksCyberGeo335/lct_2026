@@ -34,6 +34,9 @@ export function Site({ project }: { project: Project }) {
   return (
     <>
       <ObjectHeader project={project}>
+        <Link className="btn btn-quiet" to={objectUrl(project.id, 'inspection', params)}>
+          Проверить снимки →
+        </Link>
         <Upload
           key={cameraId}
           objectId={project.id}
@@ -44,14 +47,14 @@ export function Site({ project }: { project: Project }) {
       {project.status === 'warn' && project.stages.some((stage) => stage.fact !== null) && (
         <div className="alarm">
           <div>
-            <p className="alarm-t">Наблюдения указывают на риск отставания</p>
+            <p className="alarm-t">Демонстрационный риск по календарному графику</p>
             <div className="alarm-d">
-              Проверьте основания по этапам. Недостаток техники — возможная причина; процент физической
-              готовности не определяется одним подсчётом машин.
+              Это модельный показатель прогресса. Отклонения по технике проверяются в разделе «Снимки и
+              отклонения».
             </div>
             <div className="alarm-act">
               <Link className="btn-link" to={objectUrl(project.id, 'analytics', params)}>
-                Изучить отклонение →
+                Посмотреть модельный график →
               </Link>
               <Link className="btn-link" to={objectUrl(project.id, 'schedule', params)}>
                 Открыть график

@@ -1,3 +1,4 @@
+import type { Stage } from '../../domain/models';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useApp } from '../../app/context';
@@ -12,7 +13,15 @@ import {
   type CsvInput,
   type Mapping,
 } from './csv';
-export function ImportPlan({ objectId }: { objectId: string }) {
+export function ImportPlan({
+  objectId,
+  onApply,
+  disabled = false,
+}: {
+  objectId: string;
+  onApply?: (stages: Stage[]) => void;
+  disabled?: boolean;
+}) {
   const { mode } = useApp(),
     client = useQueryClient();
   const [open, setOpen] = useState(false),
@@ -62,12 +71,13 @@ export function ImportPlan({ objectId }: { objectId: string }) {
     }
   }
   async function apply() {
-    if (!preview || preview.errors.length || mode === 'api' || applying.current) return;
+    if (!preview || preview.errors.length || (mode === 'api' && !onApply) || applying.current) return;
     applying.current = true;
     setBusy(true);
     setError('');
     try {
-      await source(mode).savePlan(objectId, preview.stages);
+      if (onApply) onApply(preview.stages);
+      else await source(mode).savePlan(objectId, preview.stages);
       await Promise.all([
         client.invalidateQueries({ queryKey: [mode, 'objects'] }),
         client.invalidateQueries({ queryKey: [mode, 'report', objectId] }),
@@ -83,11 +93,12 @@ export function ImportPlan({ objectId }: { objectId: string }) {
   return (
     <>
       <div className="actions">
-        <button className="btn btn-quiet" onClick={downloadTemplate}>
+        <button className="btn btn-quiet" disabled={disabled} onClick={downloadTemplate}>
           Скачать шаблон CSV
         </button>
         <button
           className="btn btn-primary"
+          disabled={disabled}
           onClick={() => {
             setOpen(true);
             setSuccess(false);
@@ -103,8 +114,12 @@ export function ImportPlan({ objectId }: { objectId: string }) {
         description="Проверьте колонки и строки. Текущий план изменится только после применения."
       >
         <p className="sub">
-          CSV UTF-8, запятая или точка с запятой. Даты — ГГГГ-ММ-ДД. До 2000 этапов / 2 МБ. Импорт заменяет
-          план выбранного объекта.
+          CSV UTF-8, запятая или точка с запятой. Даты — ГГГГ-ММ-ДД. До 2000 этапов / 2 МБ.{' '}
+          {onApply
+            ? 'Импорт заменяет план текущей проверки; календарь объекта сохраняется.'
+            : 'Импорт заменяет календарный план выбранного объекта.'}{' '}
+          Ресурсы: exc:1|dump:2. Для иерархии укажите ID родителя. Правило required-only проверяет нехватку;
+          required-and-unexpected — также лишние классы.
         </p>
         <label className="field">
           Файл плана
@@ -185,16 +200,20 @@ export function ImportPlan({ objectId }: { objectId: string }) {
             {error}
           </p>
         )}
-        {mode === 'api' && (
+        {mode === 'api' && !onApply && (
           <Notice>Предпросмотр доступен. Сохранение плана на сервер пока не реализовано.</Notice>
         )}
         {success ? (
-          <Notice>План применён локально к этому демообъекту.</Notice>
+          <Notice>
+            {onApply
+              ? 'План применён к проверке в текущем сеансе. На сервер не отправлен.'
+              : 'План применён локально к этому демообъекту.'}
+          </Notice>
         ) : (
           <div className="actions">
             <button
               className="btn btn-primary"
-              disabled={mode === 'api' || !preview || preview.errors.length > 0 || busy}
+              disabled={(mode === 'api' && !onApply) || !preview || preview.errors.length > 0 || busy}
               onClick={() => void apply()}
             >
               {busy ? 'Сохранение…' : 'Применить план'}

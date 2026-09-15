@@ -16,6 +16,7 @@ try {
     '/objects/north-park',
     '/objects/north-park/analytics',
     '/objects/north-park/schedule',
+    '/objects/north-park/inspection',
     '/objects/north-park/settings',
   ]) {
     const response = await page.goto('http://127.0.0.1:4173' + path + '?mode=demo');
@@ -35,6 +36,12 @@ try {
   await page.goto('http://127.0.0.1:4173/objects');
   await expect(page.getByRole('heading', { name: 'Подключение и загрузка' })).toBeVisible();
   results.push({ productionDefault: 'api', explicitDemo: true, videoDuration: 60 });
+
+  await page.goto('http://127.0.0.1:4173/objects/north-park/inspection?mode=demo');
+  await page.getByRole('button', { name: 'Загрузить пример ТЗ', exact: true }).click();
+  await expect(page.getByTestId('assessment')).toContainText('Не хватает необходимой техники');
+  await expect(page.getByTestId('image-detection')).toHaveCount(1);
+  results.push({ inspectionDemo: 'bound PNG and result, missing equipment explained' });
 
   process.env.VITE_APP_MODE = 'unsupported-value';
   invalidServer = await createServer({ server: { host: '127.0.0.1', port: 5174, strictPort: true } });

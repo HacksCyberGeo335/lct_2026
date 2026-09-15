@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "image": {
+    "name": "pit-unexpected.png",
+    "width": 1280,
+    "height": 720,
+    "sha256": "f911c3cbec1818ad8d269052cb69b7ca024bc7cc39359a1df46f363653442db2"
+  },
+  "captured_at": "2026-08-25T11:19:37.000Z",
+  "camera_id": "1",
+  "zone": "А",
+  "state": "succeeded",
+  "model": "Синтетический пример, не ML",
+  "quality": {
+    "usable": true,
+    "reason": ""
+  },
+  "error": null,
+  "detections": [
+    {
+      "id": "north-park-1-0",
+      "class_id": "exc",
+      "confidence": 0.97,
+      "bbox": [
+        0.099,
+        0.34,
+        0.2,
+        0.33
+      ]
+    },
+    {
+      "id": "north-park-1-1",
+      "class_id": "dump",
+      "confidence": 0.94,
+      "bbox": [
+        0.376,
+        0.47,
+        0.19,
+        0.25
+      ]
+    },
+    {
+      "id": "north-park-1-2",
+      "class_id": "crane",
+      "confidence": 0.91,
+      "bbox": [
+        0.63,
+        0.16,
+        0.13,
+        0.47
+      ]
+    }
+  ]
+}

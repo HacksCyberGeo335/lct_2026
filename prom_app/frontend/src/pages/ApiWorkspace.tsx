@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useApp } from '../app/context';
@@ -37,6 +38,9 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
         <p className="eyebrow">Рабочее подключение / API</p>
         <h1 className="h-page">{titles[section] ?? titles.objects}</h1>
         <p className="meta">Загрузка видео подключена к действующему Gateway.</p>
+        <Link className="btn btn-primary" to="/objects/unavailable/inspection?mode=api">
+          Открыть проверку снимков →
+        </Link>
       </header>
       <section className="sheet sheet-pad stack">
         <div className="section-heading">

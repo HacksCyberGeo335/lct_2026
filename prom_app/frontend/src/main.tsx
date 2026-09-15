@@ -8,6 +8,7 @@ import App from './App';
 import { readConfig } from './shared/config';
 import './styles/reference.css';
 import './styles/app.css';
+import './styles/inspection.css';
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state: { error: Error | null } = { error: null };
   static getDerivedStateFromError(error: Error) {

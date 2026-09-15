@@ -1,9 +1,8 @@
-import { z } from 'zod';
+import { planSchema } from '../domain/plan';
 import { projects, projectWithStages, createReport } from '../demo/data';
 import { readDemo, writeDemo } from './demoStorage';
 import {
   settingsSchema,
-  stageSchema,
   type Mode,
   type Project,
   type Stage,
@@ -28,7 +27,7 @@ function allProjects(signal: AbortSignal) {
   signal.throwIfAborted();
   return projects.map((p) => {
     try {
-      const stages = readDemo('plan:' + p.id, z.array(stageSchema).max(2000).nullable(), null);
+      const stages = readDemo('plan:' + p.id, planSchema.nullable(), null);
       return stages === null ? p : { ...projectWithStages(p, stages), forecast: null };
     } catch (error) {
       return {
@@ -58,7 +57,7 @@ const demo: DataSource = {
     return settings;
   },
   savePlan: async (id, stages) => {
-    writeDemo('plan:' + id, z.array(stageSchema).parse(stages));
+    writeDemo('plan:' + id, planSchema.parse(stages));
   },
 };
 const unavailable = (feature: string): never => {
