@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { InspectionFrame } from '../../domain/inspection';
 import { equipmentInfo } from '../../domain/models';
-export function ImageViewer({ frame }: { frame: InspectionFrame }) {
+export function ImageViewer({ frame, threshold = 0.5 }: { frame: InspectionFrame; threshold?: number }) {
   const [boxes, setBoxes] = useState(true),
     [loaded, setLoaded] = useState(false),
     [error, setError] = useState(false);
@@ -82,7 +82,10 @@ export function ImageViewer({ frame }: { frame: InspectionFrame }) {
       {frame.result?.state === 'succeeded' ? (
         <div className="table-scroll">
           <table>
-            <caption>Распознанная техника — {detections.length}. Порог для сопоставления: 50%.</caption>
+            <caption>
+              Распознанная техника — {detections.length}. Порог для сопоставления:{' '}
+              {Math.round(threshold * 100)}%.
+            </caption>
             <thead>
               <tr>
                 <th>Класс</th>

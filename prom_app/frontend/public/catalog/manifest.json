@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "construction-reviewed-2026-09-18",
+  "reviewed_on": "2026-09-18",
+  "files": {
+    "cards": {
+      "file": "construction_work_cards.json",
+      "sha256": "8c31bc2a4987d966a0f38a0652069645ef2feeaf27961146f577742eef946b71",
+      "bytes": 2363700,
+      "schema_version": "3.1-reviewed"
+    },
+    "equipment": {
+      "file": "construction_work_equipment.json",
+      "sha256": "1a8b0f5b23d62d8003955c955bfc20a4efbf97c20c86128e78fc8f47d604fb44",
+      "bytes": 2298132,
+      "schema_version": "1.1"
+    },
+    "durations": {
+      "file": "construction_work_duration_review.json",
+      "sha256": "f7269a8b6259e5351520efedec0d8fd63bf9012202f4e05f2b9f00de31e3ce0d",
+      "bytes": 519503,
+      "schema_version": "1.0"
+    }
+  }
+}

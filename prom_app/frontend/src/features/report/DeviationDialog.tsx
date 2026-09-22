@@ -17,22 +17,25 @@ export function DeviationDialog({
 }) {
   const { params } = useFilters(),
     { session } = useInspectionSession(project.id);
-  const observations = stage
-    ? session.frames.flatMap((frame) =>
-        evaluateFrame(project.stages, frame)
-          .filter(
-            (a) =>
-              a.stage.id === stage.id &&
-              !['inactive', 'other-zone'].includes(a.status) &&
-              frame.result !== null,
-          )
-          .map((a) => ({ frame, assessment: a })),
-      )
-    : [];
+  const observations =
+    stage && !stage.workId
+      ? session.frames.flatMap((frame) =>
+          evaluateFrame(project.stages, frame)
+            .filter(
+              (a) =>
+                a.stage.id === stage.id &&
+                !['inactive', 'other-zone'].includes(a.status) &&
+                frame.result !== null,
+            )
+            .map((a) => ({ frame, assessment: a })),
+        )
+      : [];
   const target = new URLSearchParams(params);
   if (stage) target.set('stage', stage.id);
   target.delete('image');
   target.set('plan', 'calendar');
+  if (stage?.workId) target.delete('rules');
+  else target.set('rules', 'legacy');
   return (
     <Modal
       open={!!stage}
@@ -54,7 +57,13 @@ export function DeviationDialog({
               <dd>{stage.zone || 'Не задана'}</dd>
             </div>
           </dl>
-          <h3>Необходимая техника</h3>
+          {stage.workId && (
+            <p>
+              Работа справочника: {stage.workId}. Условия, фазы и возможности камеры проверяются в разделе
+              снимков.
+            </p>
+          )}
+          <h3>Ресурсы календарного плана</h3>
           {resourcesOf(stage).length ? (
             <ul>
               {resourcesOf(stage).map((r) => (
@@ -83,6 +92,11 @@ export function DeviationDialog({
                 </div>
               );
             })
+          ) : stage.workId ? (
+            <p>
+              Для этой работы откройте проверку по справочнику: там выбираются метод, фаза и профиль
+              наблюдения. Проценты модельного прогресса не подтверждают наличие техники.
+            </p>
           ) : (
             <p>
               Подходящих снимков с результатами для этого этапа пока нет. Проценты модельного прогресса не

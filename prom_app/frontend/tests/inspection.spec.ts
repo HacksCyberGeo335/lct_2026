@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import result from '../public/inspection/pit-missing.png.json' with { type: 'json' };
-const route = '/objects/north-park/inspection?mode=demo';
+const route = '/objects/north-park/inspection?mode=demo&rules=legacy';
 const csv =
   'id,parent_id,name,start,end,zone,resources\nroot,,Стройка,2026-08-01,2026-09-30,,\npit,root,Разработка котлована,2026-08-01,2026-08-31,А,exc:1|dump:2';
 
@@ -91,7 +91,7 @@ test('API mode supports local image inspection and local plans without pretendin
   page,
 }) => {
   // An arbitrary future API object ID must not collide with Object.prototype keys.
-  await page.goto('/objects/constructor/inspection?mode=api');
+  await page.goto('/objects/constructor/inspection?mode=api&rules=legacy');
   await page.getByRole('button', { name: 'Импорт плана', exact: true }).click();
   await page
     .getByLabel('Файл плана')

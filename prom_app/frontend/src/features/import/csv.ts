@@ -12,6 +12,8 @@ export const columns = {
   resources: 'Ресурсы',
   parent_id: 'ID родителя',
   policy: 'Правило',
+  work_id: 'ID работы справочника',
+  catalog_id: 'Версия справочника',
 };
 export type Mapping = Record<keyof typeof columns, string>;
 export interface CsvInput {
@@ -104,6 +106,9 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
     const resources: NonNullable<Stage['resources']> = [];
     const policy = get('policy') || 'required-and-unexpected';
     const messages: string[] = [];
+    if (!!get('work_id') !== !!get('catalog_id'))
+      messages.push('Укажите вместе work_id и catalog_id либо оставьте оба пустыми');
+    if (get('work_id') && !/^work_\d+$/.test(get('work_id'))) messages.push('ID работы: work_047');
     if (row.length !== input.headers.length) messages.push('Число полей не совпадает с заголовком');
     if (!name) messages.push('Название обязательно');
     if (!dateSchema.safeParse(start).success || !dateSchema.safeParse(end).success)
@@ -159,6 +164,7 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
         start,
         end,
         zone: get('zone'),
+        ...(get('work_id') ? { workId: get('work_id'), catalogId: get('catalog_id') } : {}),
         parentId: get('parent_id') || null,
         resources,
         rulePolicy: policy as Stage['rulePolicy'],

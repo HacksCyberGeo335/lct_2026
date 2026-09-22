@@ -19,6 +19,8 @@ export function validatePlan(stages: Stage[]): { id: string; message: string }[]
   const parents = new Set(stages.map((s) => s.parentId).filter(Boolean));
   if (byId.size !== stages.length) issues.push({ id: '', message: 'ID этапов должны быть уникальны.' });
   for (const stage of stages) {
+    if (!!stage.workId !== !!stage.catalogId)
+      issues.push({ id: stage.id, message: 'ID работы и версия справочника задаются вместе.' });
     const resources = resourcesOf(stage);
     if (new Set(resources.map((r) => r.equipment)).size !== resources.length)
       issues.push({ id: stage.id, message: 'Класс техники повторяется в требованиях этапа.' });

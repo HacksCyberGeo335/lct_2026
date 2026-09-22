@@ -25,6 +25,7 @@ for (const path of [
   '/media/missing.webm',
   '/inspection/missing.png',
   '/inspection/missing.json',
+  '/catalog/missing.json',
   '/assets/missing.js',
   '/fonts/missing.woff2',
 ]) {
@@ -44,10 +45,10 @@ await page.reload();
 await page.getByRole('heading', { level: 1 }).waitFor();
 await page.screenshot({ path: 'artifacts/production-site.png', fullPage: true });
 await page.goto(base + '/objects/north-park/inspection?mode=demo');
-await page.getByRole('button', { name: 'Загрузить пример ТЗ', exact: true }).click();
-await expect(page.getByTestId('assessment')).toContainText('Не хватает необходимой техники');
+await page.getByRole('button', { name: 'Открыть пример со справочником', exact: true }).click();
+await expect(page.locator('.catalog-group').nth(1)).toContainText('Условие не применяется');
 await expect(page.getByTestId('image-detection')).toHaveCount(1);
-results.push({ inspectionDemo: 'PNG, result and resource assessment loaded through nginx' });
+results.push({ inspectionDemo: 'catalog, PNG and conditional assessment loaded through nginx' });
 await browser.close();
 if (errors.length) throw new Error(errors.join('\n'));
 writeFileSync('artifacts/production-checks.json', JSON.stringify(results, null, 2));

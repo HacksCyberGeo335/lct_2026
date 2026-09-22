@@ -1,10 +1,12 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { InspectionFrame } from '../../domain/inspection';
 import type { Stage } from '../../domain/models';
+import type { CatalogProfile } from '../../domain/catalogInspection';
 
 interface InspectionSession {
   frames: InspectionFrame[];
   plan: Stage[] | null;
+  profile?: CatalogProfile;
 }
 const emptySession: InspectionSession = { frames: [], plan: null };
 interface Store {
@@ -69,10 +71,11 @@ export function useInspectionSession(objectId: string) {
       store.update(objectId, (old) => ({ ...old, frames: old.frames.filter((f) => f.id !== frame.id) }));
     },
     setPlan: (plan: Stage[]) => store.update(objectId, (old) => ({ ...old, plan })),
+    setProfile: (profile: CatalogProfile) => store.update(objectId, (old) => ({ ...old, profile })),
     replace: (frames: InspectionFrame[], plan: Stage[]) => {
       session.frames.forEach((f) => store.release(f.url));
       frames.forEach((f) => store.own(f.url));
-      store.update(objectId, () => ({ frames, plan }));
+      store.update(objectId, (old) => ({ ...old, frames, plan }));
     },
   };
 }

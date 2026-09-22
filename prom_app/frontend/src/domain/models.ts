@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { detectorLabel } from './detectorClasses';
 
 export type Mode = 'demo' | 'api';
 export type Status = 'ok' | 'warn' | 'idle';
@@ -39,6 +40,11 @@ export const stageSchema = z
     start: dateSchema,
     end: dateSchema,
     zone: z.string(),
+    workId: z
+      .string()
+      .regex(/^work_\d+$/)
+      .optional(),
+    catalogId: z.string().min(1).optional(),
     parentId: z.string().min(1).nullable().optional(),
     resources: z
       .array(z.object({ equipment: equipmentClass, quantity: z.number().int().min(1).max(1000000) }))
@@ -58,7 +64,7 @@ export function equipmentInfo(id: string) {
   const known = equipmentClass.safeParse(id);
   return known.success
     ? classes[known.data]
-    : { label: 'Неизвестный класс: ' + id, plural: 'Неизвестный класс: ' + id, color: '#545E59' };
+    : { label: detectorLabel(id), plural: detectorLabel(id), color: '#545E59' };
 }
 export const settingsSchema = z.object({
   deviations: z.boolean(),
