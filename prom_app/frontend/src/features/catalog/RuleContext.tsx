@@ -1,3 +1,4 @@
+import { editProfile, profileForStage } from '../../domain/profileTransitions';
 import { allRequirements, type CatalogProfile } from '../../domain/catalogInspection';
 import type { Catalog } from '../../domain/catalog';
 import type { Stage } from '../../domain/models';
@@ -14,7 +15,7 @@ export function RuleContext({
   onChange: (p: CatalogProfile) => void;
   stages: Stage[];
 }) {
-  const patch = (value: Partial<CatalogProfile>) => onChange({ ...p, ...value, kind: 'draft' });
+  const patch = (value: Partial<CatalogProfile>) => onChange(editProfile(p, value));
   const groups = allRequirements(catalog, p.workId);
   const phases = [...new Set(groups.map((g) => g.phase))];
   const keys = [...new Set(groups.flatMap((g) => Object.keys(g.when)))];
@@ -44,19 +45,7 @@ export function RuleContext({
               value={p.stageId}
               onChange={(e) => {
                 const stage = stages.find((s) => s.id === e.target.value);
-                if (stage)
-                  onChange({
-                    ...p,
-                    kind: 'draft',
-                    stageId: stage.id,
-                    zone: stage.zone,
-                    start: stage.start,
-                    end: stage.end,
-                    workId: stage.workId || p.workId,
-                    phases: [],
-                    conditions: {},
-                    alternatives: {},
-                  });
+                if (stage) onChange(profileForStage(p, stage.id, stage));
                 else patch({ stageId: '' });
               }}
             >

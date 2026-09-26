@@ -37,8 +37,6 @@ export function Analytics({ project }: { project: Project }) {
         <PlanRecovery project={project} />
       </>
     );
-  if (!report.data)
-    return <QueryState pending={report.isPending} error={report.error} retry={() => void report.refetch()} />;
   const data = report.data;
   async function print() {
     await document.fonts.ready;
@@ -47,7 +45,7 @@ export function Analytics({ project }: { project: Project }) {
   return (
     <article className="report">
       <ObjectHeader project={project} title="Соответствие графику">
-        <button className="btn btn-quiet" onClick={() => void print()}>
+        <button className="btn btn-quiet" disabled={!data} onClick={() => void print()}>
           Печать / сохранить PDF
         </button>
       </ObjectHeader>
@@ -71,95 +69,104 @@ export function Analytics({ project }: { project: Project }) {
           </select>
         </label>
       </div>
-      <p className="report-mark">
-        Демонстрационные данные · модельный пример. Сформировано:{' '}
-        {new Date(data.generatedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}, UTC+3.
-      </p>
-      <div className="kpi-band">
-        {[
-          [
-            'Соответствие графику',
-            data.compliance === null ? '—' : formatNumber(data.compliance) + '%',
-            'Факт / план с весами по длительности',
-          ],
-          ['Отклонение прогресса', deltaText(data.delta), 'Факт минус план на дату среза'],
-          ['Текущий этап', project.stage, 'Модельный пример этапа'],
-          [
-            'Прогноз завершения',
-            project.forecast ?? 'Недостаточно данных',
-            'Демонстрационный сценарий, не ML-прогноз',
-          ],
-        ].map(([label, value, note], i) => (
-          <div className="kpi" key={label}>
-            <p className="eyebrow">{label}</p>
-            <p className={'kpi-v' + (i > 1 ? ' small' : '')}>{value}</p>
-            <p className="kpi-s">{note}</p>
+      {!data ? (
+        <QueryState pending={report.isPending} error={report.error} retry={() => void report.refetch()} />
+      ) : (
+        <>
+          <p className="report-mark">
+            Демонстрационные данные · модельный пример. Сформировано:{' '}
+            {new Date(data.generatedAt).toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}, UTC+3.
+          </p>
+          <div className="kpi-band">
+            {[
+              [
+                'Соответствие графику',
+                data.compliance === null ? '—' : formatNumber(data.compliance) + '%',
+                'Факт / план с весами по длительности',
+              ],
+              ['Отклонение прогресса', deltaText(data.delta), 'Факт минус план на дату среза'],
+              ['Текущий этап', project.stage, 'Модельный пример этапа'],
+              [
+                'Прогноз завершения',
+                project.forecast ?? 'Недостаточно данных',
+                'Демонстрационный сценарий, не ML-прогноз',
+              ],
+            ].map(([label, value, note], i) => (
+              <div className="kpi" key={label}>
+                <p className="eyebrow">{label}</p>
+                <p className={'kpi-v' + (i > 1 ? ' small' : '')}>{value}</p>
+                <p className="kpi-s">{note}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <section className="sheet sheet-pad">
-        <h2 className="h-sec">Выполнение плана по датам, %</h2>
-        {data.points.length ? (
-          <ReportChart points={data.points} />
-        ) : (
-          <Empty title="Нет данных для графика">
-            Плановые и фактические доли выполнения ещё не рассчитаны.
-          </Empty>
-        )}
-        <p className="chart-cap">
-          Доли выполнения заданы в демонаборе. Вес этапа — его плановая длительность. Количество детекций не
-          используется для расчёта готовности. Полнота наблюдений:{' '}
-          {project.coverage === null ? 'нет наблюдений' : project.coverage + '%'}.
-        </p>
-      </section>
-      <section className="sheet sheet-pad">
-        <h2 className="h-sec">Этапы работ: план, факт и отклонение</h2>
-        <div className="table-scroll">
-          <table>
-            <caption>Срез на 25.08.2026 · {project.name}</caption>
-            <thead>
-              <tr>
-                <th>Этап работ</th>
-                <th>Плановый период</th>
-                <th>Факт на дату среза</th>
-                <th>План / факт, %</th>
-                <th>Отклонение</th>
-                <th>Модельный прогресс</th>
-              </tr>
-            </thead>
-            <tbody>
-              {project.stages.map((s) => (
-                <tr key={s.id}>
-                  <th scope="row">
-                    <button className="table-link" onClick={() => setDetail(s)}>
-                      {s.name}
-                    </button>
-                  </th>
-                  <td>
-                    {formatDate(s.start)} — {formatDate(s.end)}
-                  </td>
-                  <td>
-                    {s.actualStart
-                      ? formatDate(s.actualStart) +
-                        ' — ' +
-                        (s.actualEnd ? formatDate(s.actualEnd) : 'наблюдается')
-                      : 'Нет наблюдённого факта'}
-                  </td>
-                  <td className="mono">
-                    {s.plan ?? '—'} / {s.fact ?? '—'}
-                  </td>
-                  <td className="mono">
-                    {deltaText(s.fact !== null && s.plan !== null ? s.fact - s.plan : null)}
-                  </td>
-                  <td>
-                    <StatusStamp status={stageStatus(s)} text={s.fact === null ? 'Нет данных' : undefined} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+          <section className="sheet sheet-pad">
+            <h2 className="h-sec">Выполнение плана по датам, %</h2>
+            {data.points.length ? (
+              <ReportChart points={data.points} />
+            ) : (
+              <Empty title="Нет данных для графика">
+                Плановые и фактические доли выполнения ещё не рассчитаны.
+              </Empty>
+            )}
+            <p className="chart-cap">
+              Доли выполнения заданы в демонаборе. Вес этапа — его плановая длительность. Количество детекций
+              не используется для расчёта готовности. Полнота наблюдений:{' '}
+              {project.coverage === null ? 'нет наблюдений' : project.coverage + '%'}.
+            </p>
+          </section>
+          <section className="sheet sheet-pad">
+            <h2 className="h-sec">Этапы работ: план, факт и отклонение</h2>
+            <div className="table-scroll">
+              <table>
+                <caption>Срез на 25.08.2026 · {project.name}</caption>
+                <thead>
+                  <tr>
+                    <th>Этап работ</th>
+                    <th>Плановый период</th>
+                    <th>Факт на дату среза</th>
+                    <th>План / факт, %</th>
+                    <th>Отклонение</th>
+                    <th>Модельный прогресс</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.stages.map((s) => (
+                    <tr key={s.id}>
+                      <th scope="row">
+                        <button className="table-link" onClick={() => setDetail(s)}>
+                          {s.name}
+                        </button>
+                      </th>
+                      <td>
+                        {formatDate(s.start)} — {formatDate(s.end)}
+                      </td>
+                      <td>
+                        {s.actualStart
+                          ? formatDate(s.actualStart) +
+                            ' — ' +
+                            (s.actualEnd ? formatDate(s.actualEnd) : 'наблюдается')
+                          : 'Нет наблюдённого факта'}
+                      </td>
+                      <td className="mono">
+                        {s.plan ?? '—'} / {s.fact ?? '—'}
+                      </td>
+                      <td className="mono">
+                        {deltaText(s.fact !== null && s.plan !== null ? s.fact - s.plan : null)}
+                      </td>
+                      <td>
+                        <StatusStamp
+                          status={stageStatus(s)}
+                          text={s.fact === null ? 'Нет данных' : undefined}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
+      )}
       <DeviationDialog project={project} stage={detail} onClose={() => setDetail(null)} />
     </article>
   );

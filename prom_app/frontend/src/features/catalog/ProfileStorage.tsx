@@ -16,15 +16,18 @@ export function ProfileStorage({
   catalog,
   mode,
   onApply,
+  onSaved,
 }: {
   profile: CatalogProfile;
   catalog: Catalog;
   mode: string;
   onApply: (p: CatalogProfile) => void;
+  onSaved: () => void;
 }) {
   const [error, setError] = useState(''),
     [message, setMessage] = useState(''),
     [pending, setPending] = useState<CatalogProfile | null>(null);
+  const [messageProfile, setMessageProfile] = useState('');
   const version = useRef(0);
   useEffect(
     () => () => {
@@ -39,9 +42,13 @@ export function ProfileStorage({
     setPending(null);
     if (!file) return;
     try {
-      if (!file.name.endsWith('.json') || file.size > 128 * 1024)
+      if (!file.name.toLowerCase().endsWith('.json') || file.size > 128 * 1024)
         throw new Error('Нужен JSON-профиль до 128 КБ.');
-      const parsed = validateProfile(JSON.parse(await file.text()), catalog, profile.siteId);
+      const parsed = validateProfile(
+        JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())),
+        catalog,
+        profile.siteId,
+      );
       if (current === version.current) setPending(parsed);
     } catch (e) {
       if (current === version.current) setError(e instanceof Error ? e.message : 'Ошибка профиля.');
@@ -55,6 +62,8 @@ export function ProfileStorage({
       if (download) downloadJson(valid, 'inspection-profile-' + profile.siteId + '.json');
       else {
         localStorage.setItem(profileKey(mode, profile.siteId), JSON.stringify(valid));
+        setMessageProfile(JSON.stringify(profile));
+        onSaved();
         setMessage('Профиль сохранён в этом браузере. Снимки нужно выбрать заново после перезагрузки.');
       }
     } catch (e) {
@@ -88,7 +97,7 @@ export function ProfileStorage({
           {error}
         </p>
       )}
-      {message && <p role="status">{message}</p>}
+      {message && messageProfile === JSON.stringify(profile) && <p role="status">{message}</p>}
       <Modal
         open={!!pending}
         onClose={() => setPending(null)}
@@ -104,6 +113,7 @@ export function ProfileStorage({
             <button
               className="btn btn-primary"
               onClick={() => {
+                setMessageProfile(JSON.stringify(pending));
                 onApply(pending);
                 setPending(null);
                 setMessage('Профиль применён. Результаты пересчитаны.');

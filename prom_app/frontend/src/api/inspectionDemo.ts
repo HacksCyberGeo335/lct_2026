@@ -1,3 +1,4 @@
+import { readAsset } from './http';
 import { z } from 'zod';
 import { analysisResultSchema, type InspectionFrame } from '../domain/inspection';
 import { planSchema } from '../domain/plan';
@@ -22,9 +23,9 @@ const demoSchema = z.object({
   plan: planSchema,
 });
 export async function loadInspectionDemo(signal: AbortSignal) {
-  const response = await fetch('/inspection/manifest.json', { signal });
-  if (!response.ok) throw new Error('Не удалось открыть демонстрационный набор снимков.');
-  const parsed = demoSchema.parse(await response.json());
+  const parsed = await readAsset('/inspection/manifest.json', signal, async (response) =>
+    demoSchema.parse(await response.json()),
+  );
   for (const frame of parsed.frames) parseAnalysisResult(frame.result, frame as InspectionFrame);
   return parsed;
 }

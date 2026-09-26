@@ -86,3 +86,12 @@ describe('new plan requirements', () => {
     expect(validate(csv + 'roller:1|dozer:1|truck:2|manipulator:1|mobile_crane:1').errors).toEqual([]);
   });
 });
+
+it('allows equivalent children in different parents while rejecting duplicates within one parent and duplicate IDs', () => {
+  const text =
+    'id,parent_id,name,start,end,zone\np1,,Блок А,2026-08-01,2026-08-31,А\np2,,Блок Б,2026-08-01,2026-08-31,А\nc1,p1,Фундамент,2026-08-02,2026-08-30,А\nc2,p2,Фундамент,2026-08-02,2026-08-30,А';
+  expect(validate(text).errors).toEqual([]);
+  expect(validate(text).stages).toHaveLength(4);
+  expect(validate(text.replace('c2,p2', 'c2,p1')).errors[0]).toMatchObject({ row: 5 });
+  expect(validate(text.replace('c2,p2', 'c1,p2')).errors[0].message).toContain('Дублирующийся');
+});

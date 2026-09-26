@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useFileOperation } from '../features/inspection/useFileOperation';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApp, useFilters, objectUrl } from '../app/context';
 import { type Project, equipmentInfo, formatDate } from '../domain/models';
@@ -9,7 +10,7 @@ import { openImages } from '../features/inspection/images';
 import { ImageViewer } from '../features/inspection/ImageViewer';
 import { AssessmentCard } from '../features/inspection/AssessmentCard';
 import { ImportPlan } from '../features/import/ImportPlan';
-import { readAnalysisFile, downloadJson } from '../api/analysisResult';
+import { readAnalysisFile, downloadJson, downloadResultTemplate } from '../api/analysisResult';
 import { loadInspectionDemo } from '../api/inspectionDemo';
 import { Empty, Modal } from '../shared/ui';
 
@@ -24,23 +25,12 @@ export function LegacyInspection({ project }: { project?: Project }) {
     () => (useCalendar ? (project?.stages ?? []) : (session.plan ?? [])),
     [useCalendar, project?.stages, session.plan],
   );
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [message, setMessage] = useState('');
+  const { busy, error, message, setMessage, version, run } = useFileOperation();
+  const resultInput = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<{ frame: InspectionFrame; result: AnalysisResult } | null>(null);
   const [demoConfirm, setDemoConfirm] = useState(false),
     [removeConfirm, setRemoveConfirm] = useState(false),
     [showAll, setShowAll] = useState(false);
-  const version = useRef(0),
-    working = useRef(false),
-    controller = useRef<AbortController | null>(null);
-  useEffect(
-    () => () => {
-      version.current++;
-      controller.current?.abort();
-    },
-    [],
-  );
   const selectedId = params.get('image');
   const frame = selectedId ? session.frames.find((f) => f.id === selectedId) : session.frames[0];
   const assessments = useMemo(() => (frame ? evaluateFrame(plan, frame) : []), [frame, plan]);
@@ -49,25 +39,6 @@ export function LegacyInspection({ project }: { project?: Project }) {
     stageId ? a.stage.id === stageId : showAll || !['inactive', 'other-zone'].includes(a.status),
   );
   const warnings = assessments.filter((a) => a.status === 'warning').length;
-  async function run(operation: (current: number) => Promise<void>) {
-    if (working.current) return;
-    working.current = true;
-    setBusy(true);
-    setError('');
-    setMessage('');
-    const current = ++version.current;
-    try {
-      await operation(current);
-    } catch (e) {
-      if (current === version.current)
-        setError(e instanceof Error ? e.message : 'Не удалось завершить действие.');
-    } finally {
-      if (current === version.current) {
-        working.current = false;
-        setBusy(false);
-      }
-    }
-  }
   function add(files: File[]) {
     void run(async (current) => {
       const frames = await openImages(files, session.frames);
@@ -84,9 +55,8 @@ export function LegacyInspection({ project }: { project?: Project }) {
   }
   function demo() {
     setDemoConfirm(false);
-    void run(async (current) => {
-      controller.current = new AbortController();
-      const data = await loadInspectionDemo(controller.current.signal);
+    void run(async (current, signal) => {
+      const data = await loadInspectionDemo(signal);
       if (current !== version.current) return;
       replace(data.frames, data.plan);
       update({ image: data.frames[0].id, stage: null, plan: null });
@@ -322,6 +292,7 @@ export function LegacyInspection({ project }: { project?: Project }) {
                   <label className="field">
                     Импортировать результат анализа (JSON)
                     <input
+                      ref={resultInput}
                       type="file"
                       accept=".json,application/json"
                       disabled={busy}
@@ -337,28 +308,7 @@ export function LegacyInspection({ project }: { project?: Project }) {
                   <button
                     className="btn btn-quiet"
                     disabled={busy}
-                    onClick={() =>
-                      downloadJson(
-                        {
-                          version: 1,
-                          image: {
-                            name: frame.name,
-                            sha256: frame.sha256,
-                            width: frame.width,
-                            height: frame.height,
-                          },
-                          captured_at: new Date().toISOString(),
-                          camera_id: 'укажите-камеру',
-                          zone: 'укажите-зону',
-                          state: 'waiting',
-                          model: 'укажите-модель',
-                          quality: { usable: false, reason: 'Качество ещё не проверено' },
-                          error: null,
-                          detections: [],
-                        },
-                        frame.name + '.request.json',
-                      )
-                    }
+                    onClick={() => downloadResultTemplate(frame)}
                   >
                     Скачать шаблон результата
                   </button>
@@ -425,6 +375,7 @@ export function LegacyInspection({ project }: { project?: Project }) {
         </>
       )}
       <Modal
+        returnFocusRef={resultInput}
         open={!!pending}
         onClose={() => setPending(null)}
         title="Применить результат анализа?"

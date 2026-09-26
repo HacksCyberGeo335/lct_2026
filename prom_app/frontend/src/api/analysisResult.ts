@@ -37,3 +37,19 @@ export function downloadJson(value: unknown, name: string) {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+export function downloadResultTemplate(frame: InspectionFrame) {
+  const value: AnalysisResult = {
+    version: 1,
+    image: { name: frame.name, sha256: frame.sha256, width: frame.width, height: frame.height },
+    captured_at: new Date().toISOString(),
+    camera_id: 'укажите-камеру',
+    zone: 'укажите-зону',
+    state: 'waiting',
+    model: 'укажите-модель',
+    quality: { usable: false, reason: 'Качество ещё не проверено' },
+    error: null,
+    detections: [],
+  };
+  downloadJson(value, frame.name + '.request.json');
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { requirementStatuses, type Catalog } from '../../domain/catalog';
 export function WorkPicker({
   catalog,
@@ -9,6 +9,11 @@ export function WorkPicker({
   selected: string;
   onSelect: (id: string) => void;
 }) {
+  const summary = useRef<HTMLElement>(null);
+  const [disclosure, setDisclosure] = useState({ selected, open: !selected });
+  if (disclosure.selected !== selected) setDisclosure({ selected, open: !selected });
+  const expanded = disclosure.selected === selected ? disclosure.open : !selected;
+  const setExpanded = (open: boolean) => setDisclosure({ selected, open });
   const [query, setQuery] = useState(''),
     [category, setCategory] = useState(''),
     [objectType, setObjectType] = useState(''),
@@ -32,8 +37,8 @@ export function WorkPicker({
   );
   const types = [...new Set(catalog.cards.flatMap((c) => c.applicable_object_types))];
   return (
-    <details className="catalog-picker" open={!selected}>
-      <summary>Выбрать работу из справочника · {catalog.cards.length}</summary>
+    <details className="catalog-picker" open={expanded} onToggle={(e) => setExpanded(e.currentTarget.open)}>
+      <summary ref={summary}>Выбрать работу из справочника · {catalog.cards.length}</summary>
       <label className="field">
         Поиск работы
         <input
@@ -85,7 +90,16 @@ export function WorkPicker({
       </p>
       <div className="catalog-results" role="group" aria-label="Работы справочника">
         {results.map((c) => (
-          <button type="button" key={c.id} aria-pressed={selected === c.id} onClick={() => onSelect(c.id)}>
+          <button
+            type="button"
+            key={c.id}
+            aria-pressed={selected === c.id}
+            onClick={() => {
+              onSelect(c.id);
+              setExpanded(false);
+              summary.current?.focus();
+            }}
+          >
             <strong>{c.canonical_work_name}</strong>
             <small>
               {c.id} · {c.row_kind === 'AGGREGATE' ? 'Сводный раздел' : 'Работа'} ·{' '}

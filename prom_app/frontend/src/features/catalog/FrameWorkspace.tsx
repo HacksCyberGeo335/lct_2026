@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useFileOperation } from '../inspection/useFileOperation';
+import { useRef, useState } from 'react';
 import { useFilters } from '../../app/context';
 import { type AnalysisResult, type InspectionFrame } from '../../domain/inspection';
 import { useInspectionSession } from '../inspection/session';
 import { openImages } from '../inspection/images';
 import { ImageViewer } from '../inspection/ImageViewer';
-import { readAnalysisFile, downloadJson } from '../../api/analysisResult';
+import { readAnalysisFile, downloadJson, downloadResultTemplate } from '../../api/analysisResult';
 import { Empty, Modal } from '../../shared/ui';
 
 export function FrameWorkspace({
@@ -23,41 +24,10 @@ export function FrameWorkspace({
   const frame = params.has('image')
     ? session.frames.find((f) => f.id === params.get('image'))
     : session.frames[0];
-  const [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [message, setMessage] = useState('');
+  const { busy, error, message, setMessage, version, run } = useFileOperation(disabled, onBusyChange);
+  const resultInput = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<{ frame: InspectionFrame; result: AnalysisResult } | null>(null);
   const [remove, setRemove] = useState(false);
-  const version = useRef(0),
-    working = useRef(false);
-  useEffect(
-    () => () => {
-      version.current++;
-      onBusyChange(false);
-    },
-    [onBusyChange],
-  );
-  async function run(action: (current: number) => Promise<void>) {
-    if (working.current || disabled) return;
-    working.current = true;
-    setBusy(true);
-    onBusyChange(true);
-    setError('');
-    setMessage('');
-    const current = ++version.current;
-    try {
-      await action(current);
-    } catch (e) {
-      if (current === version.current)
-        setError(e instanceof Error ? e.message : 'Не удалось прочитать файл.');
-    } finally {
-      if (current === version.current) {
-        working.current = false;
-        setBusy(false);
-        onBusyChange(false);
-      }
-    }
-  }
   return (
     <section className="catalog-frames stack" aria-label="Наблюдения площадки">
       <div className="sheet sheet-pad stack">
@@ -183,6 +153,7 @@ export function FrameWorkspace({
             <label className="field">
               Импортировать результат анализа (JSON)
               <input
+                ref={resultInput}
                 type="file"
                 accept=".json"
                 disabled={busy || disabled}
@@ -200,31 +171,7 @@ export function FrameWorkspace({
             <p className="sub">
               Проверяются SHA-256, имя и размеры снимка. Импорт не запускает распознавание.
             </p>
-            <button
-              className="btn btn-quiet"
-              onClick={() =>
-                downloadJson(
-                  {
-                    version: 1,
-                    image: {
-                      name: frame.name,
-                      sha256: frame.sha256,
-                      width: frame.width,
-                      height: frame.height,
-                    },
-                    captured_at: new Date().toISOString(),
-                    camera_id: 'укажите-камеру',
-                    zone: 'укажите-зону',
-                    state: 'waiting',
-                    model: 'укажите-модель',
-                    quality: { usable: false, reason: 'Качество ещё не проверено' },
-                    error: null,
-                    detections: [],
-                  },
-                  frame.name + '.request.json',
-                )
-              }
-            >
+            <button className="btn btn-quiet" onClick={() => downloadResultTemplate(frame)}>
               Скачать шаблон результата
             </button>
             {frame.result && (
@@ -242,6 +189,7 @@ export function FrameWorkspace({
         </div>
       )}
       <Modal
+        returnFocusRef={resultInput}
         open={!!pending}
         onClose={() => setPending(null)}
         title="Применить результат анализа?"

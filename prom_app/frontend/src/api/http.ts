@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+const requestMessages = {
+  timeout: 'Сервер не ответил вовремя. Результат запроса может быть неизвестен.',
+  network: 'Не удалось связаться с сервером. Проверьте адрес Gateway, сеть и CORS.',
+  json: 'Сервер вернул некорректный JSON. Результат запроса может быть неизвестен.',
+};
+
 /** The deadline covers both response headers and consumption of the response body. */
 export async function request<T>(
   base: string,
@@ -8,6 +14,7 @@ export async function request<T>(
   signal: AbortSignal,
   read: (response: Response) => Promise<T>,
   timeout = 20000,
+  messages = requestMessages,
 ): Promise<T> {
   const controller = new AbortController();
   const abort = () => controller.abort(signal.reason);
@@ -37,15 +44,15 @@ export async function request<T>(
   } catch (error) {
     if (signal.aborted) throw new DOMException('Передача отменена', 'AbortError');
     if (controller.signal.aborted)
-      throw new Error('Сервер не ответил вовремя. Результат запроса может быть неизвестен.', {
+      throw new Error(messages.timeout, {
         cause: error,
       });
     if (error instanceof TypeError)
-      throw new Error('Не удалось связаться с сервером. Проверьте адрес Gateway, сеть и CORS.', {
+      throw new Error(messages.network, {
         cause: error,
       });
     if (error instanceof SyntaxError)
-      throw new Error('Сервер вернул некорректный JSON. Результат запроса может быть неизвестен.', {
+      throw new Error(messages.json, {
         cause: error,
       });
     throw error;
@@ -61,4 +68,18 @@ export function readJson<T>(schema: z.ZodType<T>, message = 'Некоррект�
     if (!result.success) throw new Error(message);
     return result.data;
   };
+}
+
+/** Static assets use the same body-inclusive deadline, with recoverable read-only errors. */
+export function readAsset<T>(
+  path: string,
+  signal: AbortSignal,
+  read: (response: Response) => Promise<T>,
+  timeout = 20000,
+) {
+  return request('', path, {}, signal, read, timeout, {
+    timeout: 'Время загрузки истекло. Проверьте соединение и повторите загрузку.',
+    network: 'Не удалось загрузить файл. Проверьте соединение и повторите загрузку.',
+    json: 'Файл содержит некорректный JSON. Обновите комплект файлов приложения.',
+  });
 }

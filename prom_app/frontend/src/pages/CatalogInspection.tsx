@@ -5,6 +5,7 @@ import { useCatalog } from '../api/catalog';
 import { loadInspectionDemo } from '../api/inspectionDemo';
 import type { Catalog } from '../domain/catalog';
 import type { Project, Stage } from '../domain/models';
+import { editProfile, profileForStage } from '../domain/profileTransitions';
 import { leafStages } from '../domain/plan';
 import {
   allRequirements,
@@ -77,27 +78,17 @@ function Workspace({
       };
     }
   });
-  const [fallback, setFallback] = useState(() => {
-    const p = initial.profile ?? emptyProfile(objectId, catalog.id);
-    const stage = stages.find((s) => s.id === params.get('stage'));
-    return stage
-      ? {
-          ...p,
-          planSource: 'calendar' as const,
-          stageId: stage.id,
-          zone: stage.zone,
-          start: stage.start,
-          end: stage.end,
-          workId: stage.workId ?? '',
-          phases: [],
-          conditions: {},
-          alternatives: {},
-        }
-      : p;
-  });
-  const profile = session.profile && !params.has('stage') ? session.profile : fallback;
+  const [recoveryError, setRecoveryError] = useState(initial.error);
+  const baseProfile = session.profile ?? initial.profile ?? emptyProfile(objectId, catalog.id);
+  const stageId = params.get('stage');
+  const profile = stageId
+    ? profileForStage(
+        baseProfile,
+        stageId,
+        stages.find((stage) => stage.id === stageId),
+      )
+    : baseProfile;
   function change(p: CatalogProfile) {
-    setFallback(p);
     setProfile(p);
     update({ stage: null });
   }
@@ -203,19 +194,16 @@ function Workspace({
             ? 'Синтетический пример: котлован со складированием грунта. Можно менять метод и сравнивать результат.'
             : 'Локальный профиль проверки. Настройки задаёт оператор; это не утверждённый ППР.'}
         </p>
-        {initial.error && <p role="alert">{initial.error}</p>}
+        {recoveryError && <p role="alert">{recoveryError}</p>}
         {error && <p role="alert">{error}</p>}
         {busy && <p role="status">Открываем демонстрационные снимки…</p>}
       </section>
       <fieldset className="catalog-body stack" disabled={busy}>
         <section className="sheet sheet-pad stack">
           <WorkPicker
-            key={profile.workId}
             catalog={catalog}
             selected={profile.workId}
-            onSelect={(id) =>
-              change({ ...profile, workId: id, kind: 'draft', phases: [], conditions: {}, alternatives: {} })
-            }
+            onSelect={(id) => change(editProfile(profile, { workId: id }))}
           />
           {!profile.workId && (
             <p>
@@ -239,7 +227,13 @@ function Workspace({
               Скачать пример CSV со связью со справочником
             </a>
           </details>
-          <ProfileStorage catalog={catalog} profile={profile} mode={mode} onApply={change} />
+          <ProfileStorage
+            catalog={catalog}
+            profile={profile}
+            mode={mode}
+            onApply={change}
+            onSaved={() => setRecoveryError('')}
+          />
         </section>
         <FrameWorkspace
           key={frameRevision}

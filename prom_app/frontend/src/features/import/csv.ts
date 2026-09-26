@@ -152,7 +152,13 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
     if (new Set(resources.map((r) => r.equipment)).size !== resources.length)
       messages.push('Класс техники повторяется в ресурсах');
     if (qty && !cls) messages.push('Для количества укажите класс техники');
-    const signature = JSON.stringify([name.toLowerCase(), start, end, get('zone').toLowerCase()]);
+    const signature = JSON.stringify([
+      get('parent_id'),
+      name.toLowerCase(),
+      start,
+      end,
+      get('zone').toLowerCase(),
+    ]);
     if (ids.has(id) || signatures.has(signature)) messages.push('Дублирующийся ID или этап');
     ids.add(id);
     signatures.add(signature);

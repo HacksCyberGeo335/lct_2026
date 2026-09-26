@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, type RefObject, type ReactNode } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion, useIsPresent, useReducedMotion } from 'motion/react';
 import { appearance, transition } from './motion';
@@ -60,12 +60,14 @@ export function QueryState({
 }
 export function Modal({
   open,
+  returnFocusRef,
   onClose,
   title,
   description,
   children,
 }: {
   open: boolean;
+  returnFocusRef?: RefObject<HTMLElement | null>;
   onClose: () => void;
   title: string;
   description: string;
@@ -74,14 +76,26 @@ export function Modal({
   return (
     <AnimatePresence>
       {open && (
-        <ModalPanel key="dialog" onClose={onClose} title={title} description={description}>
+        <ModalPanel
+          returnFocusRef={returnFocusRef}
+          key="dialog"
+          onClose={onClose}
+          title={title}
+          description={description}
+        >
           {children}
         </ModalPanel>
       )}
     </AnimatePresence>
   );
 }
-function ModalPanel({ onClose, title, description, children }: Omit<Parameters<typeof Modal>[0], 'open'>) {
+function ModalPanel({
+  onClose,
+  title,
+  description,
+  children,
+  returnFocusRef,
+}: Omit<Parameters<typeof Modal>[0], 'open'>) {
   const reduce = useReducedMotion(),
     present = useIsPresent(),
     returnFocus = useRef<HTMLElement | null>(null);
@@ -111,8 +125,12 @@ function ModalPanel({ onClose, title, description, children }: Omit<Parameters<t
           }}
           onCloseAutoFocus={(event) => {
             event.preventDefault();
-            if (returnFocus.current?.isConnected) returnFocus.current.focus();
-            else document.querySelector<HTMLElement>('#main')?.focus();
+            const target = returnFocusRef?.current ?? returnFocus.current;
+            if (target?.isConnected && target !== document.body && !target.closest('[inert]')) {
+              target.focus();
+              if (document.activeElement === target) return;
+            }
+            document.querySelector<HTMLElement>('#main')?.focus();
           }}
         >
           <motion.div

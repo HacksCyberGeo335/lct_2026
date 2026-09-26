@@ -1,3 +1,4 @@
+import { readAsset } from './http';
 import { z } from 'zod';
 import { useQuery } from '@tanstack/react-query';
 import { parseCatalog } from '../domain/catalog';
@@ -18,16 +19,14 @@ export const catalogManifestSchema = z.object({
   files: z.object({ cards: file, equipment: file, durations: file }),
 });
 export async function loadCatalog(signal: AbortSignal) {
-  const response = await fetch('/catalog/manifest.json', { signal });
-  if (!response.ok) throw new Error('Справочник недоступен. Проверьте соединение и повторите загрузку.');
-  const manifest = catalogManifestSchema.parse(await response.json());
+  const manifest = await readAsset('/catalog/manifest.json', signal, async (response) =>
+    catalogManifestSchema.parse(await response.json()),
+  );
   if (!crypto.subtle) throw new Error('Для проверки целостности справочника откройте HTTPS или localhost.');
   const values = await Promise.all(
     ['cards', 'equipment', 'durations'].map(async (role) => {
       const meta = manifest.files[role as keyof typeof manifest.files];
-      const r = await fetch('/catalog/' + meta.file, { signal });
-      if (!r.ok) throw new Error('Не удалось загрузить файл справочника: ' + role);
-      const bytes = await r.arrayBuffer();
+      const bytes = await readAsset('/catalog/' + meta.file, signal, (response) => response.arrayBuffer());
       if (bytes.byteLength !== meta.bytes)
         throw new Error('Размер файла справочника не совпадает с манифестом.');
       const hash = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
