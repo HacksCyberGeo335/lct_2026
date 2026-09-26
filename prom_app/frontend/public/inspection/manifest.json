@@ -1,0 +1,320 @@
+{
+  "frames": [
+    {
+      "id": "demo-pit-missing.png",
+      "name": "pit-missing.png",
+      "url": "/inspection/pit-missing.png",
+      "sha256": "d42006b2644344ba474d025f7d6bf2f2def2f8edd0b02108a2867754acf3616e",
+      "width": 1280,
+      "height": 720,
+      "bytes": 109806,
+      "origin": "demo",
+      "result": {
+        "version": 1,
+        "image": {
+          "name": "pit-missing.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "d42006b2644344ba474d025f7d6bf2f2def2f8edd0b02108a2867754acf3616e"
+        },
+        "captured_at": "2026-08-25T11:19:22.000Z",
+        "camera_id": "1",
+        "zone": "А",
+        "state": "succeeded",
+        "model": "Синтетический пример, не ML",
+        "quality": {
+          "usable": true,
+          "reason": ""
+        },
+        "error": null,
+        "detections": [
+          {
+            "id": "north-park-1-0",
+            "class_id": "exc",
+            "confidence": 0.97,
+            "bbox": [
+              0.09,
+              0.34,
+              0.2,
+              0.33
+            ]
+          }
+        ]
+      },
+      "label": "Котлован: не хватает самосвалов"
+    },
+    {
+      "id": "demo-pit-unexpected.png",
+      "name": "pit-unexpected.png",
+      "url": "/inspection/pit-unexpected.png",
+      "sha256": "f911c3cbec1818ad8d269052cb69b7ca024bc7cc39359a1df46f363653442db2",
+      "width": 1280,
+      "height": 720,
+      "bytes": 132461,
+      "origin": "demo",
+      "result": {
+        "version": 1,
+        "image": {
+          "name": "pit-unexpected.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "f911c3cbec1818ad8d269052cb69b7ca024bc7cc39359a1df46f363653442db2"
+        },
+        "captured_at": "2026-08-25T11:19:37.000Z",
+        "camera_id": "1",
+        "zone": "А",
+        "state": "succeeded",
+        "model": "Синтетический пример, не ML",
+        "quality": {
+          "usable": true,
+          "reason": ""
+        },
+        "error": null,
+        "detections": [
+          {
+            "id": "north-park-1-0",
+            "class_id": "exc",
+            "confidence": 0.97,
+            "bbox": [
+              0.099,
+              0.34,
+              0.2,
+              0.33
+            ]
+          },
+          {
+            "id": "north-park-1-1",
+            "class_id": "dump",
+            "confidence": 0.94,
+            "bbox": [
+              0.376,
+              0.47,
+              0.19,
+              0.25
+            ]
+          },
+          {
+            "id": "north-park-1-2",
+            "class_id": "crane",
+            "confidence": 0.91,
+            "bbox": [
+              0.63,
+              0.16,
+              0.13,
+              0.47
+            ]
+          }
+        ]
+      },
+      "label": "Котлован: лишний кран и нехватка самосвалов"
+    },
+    {
+      "id": "demo-pit-ok.png",
+      "name": "pit-ok.png",
+      "url": "/inspection/pit-ok.png",
+      "sha256": "ee0698e7308a7619f20d710d817639d7b191f2d9a0c086fc00ee89e84da08b7f",
+      "width": 1280,
+      "height": 720,
+      "bytes": 127655,
+      "origin": "demo",
+      "result": {
+        "version": 1,
+        "image": {
+          "name": "pit-ok.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "ee0698e7308a7619f20d710d817639d7b191f2d9a0c086fc00ee89e84da08b7f"
+        },
+        "captured_at": "2026-08-25T11:19:37.000Z",
+        "camera_id": "2",
+        "zone": "А",
+        "state": "succeeded",
+        "model": "Синтетический пример, не ML",
+        "quality": {
+          "usable": true,
+          "reason": ""
+        },
+        "error": null,
+        "detections": [
+          {
+            "id": "north-park-2-0",
+            "class_id": "dump",
+            "confidence": 0.92,
+            "bbox": [
+              0.14900000000000002,
+              0.41,
+              0.22,
+              0.28
+            ]
+          },
+          {
+            "id": "north-park-2-1",
+            "class_id": "exc",
+            "confidence": 0.88,
+            "bbox": [
+              0.486,
+              0.36,
+              0.18,
+              0.31
+            ]
+          },
+          {
+            "id": "north-park-2-2",
+            "class_id": "dump",
+            "confidence": 0.81,
+            "bbox": [
+              0.713,
+              0.52,
+              0.16,
+              0.21
+            ]
+          }
+        ]
+      },
+      "label": "Котлован: техника по плану"
+    },
+    {
+      "id": "demo-foundation-ok.png",
+      "name": "foundation-ok.png",
+      "url": "/inspection/foundation-ok.png",
+      "sha256": "d3dd6b75acc0b1434cd1d7daf72a8ffbb155e21af327e009ad02c1c4d2e85441",
+      "width": 1280,
+      "height": 720,
+      "bytes": 132342,
+      "origin": "demo",
+      "result": {
+        "version": 1,
+        "image": {
+          "name": "foundation-ok.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "d3dd6b75acc0b1434cd1d7daf72a8ffbb155e21af327e009ad02c1c4d2e85441"
+        },
+        "captured_at": "2026-08-25T11:19:37.000Z",
+        "camera_id": "3",
+        "zone": "Б",
+        "state": "succeeded",
+        "model": "Синтетический пример, не ML",
+        "quality": {
+          "usable": true,
+          "reason": ""
+        },
+        "error": null,
+        "detections": [
+          {
+            "id": "north-park-3-0",
+            "class_id": "mixer",
+            "confidence": 0.95,
+            "bbox": [
+              0.229,
+              0.3,
+              0.24,
+              0.34
+            ]
+          },
+          {
+            "id": "north-park-3-1",
+            "class_id": "crane",
+            "confidence": 0.9,
+            "bbox": [
+              0.58,
+              0.12,
+              0.12,
+              0.54
+            ]
+          }
+        ]
+      },
+      "label": "Фундамент: другая зона"
+    }
+  ],
+  "plan": [
+    {
+      "id": "construction",
+      "name": "Строительно-монтажные работы",
+      "start": "2026-08-01",
+      "end": "2026-09-30",
+      "zone": "",
+      "resources": [],
+      "parentId": null,
+      "rulePolicy": "required-and-unexpected",
+      "equipment": null,
+      "quantity": null,
+      "actualStart": null,
+      "actualEnd": null,
+      "plan": null,
+      "fact": null
+    },
+    {
+      "id": "pit",
+      "name": "Разработка котлована",
+      "start": "2026-08-01",
+      "end": "2026-08-31",
+      "zone": "А",
+      "resources": [
+        {
+          "equipment": "exc",
+          "quantity": 1
+        },
+        {
+          "equipment": "dump",
+          "quantity": 2
+        }
+      ],
+      "parentId": "construction",
+      "rulePolicy": "required-and-unexpected",
+      "equipment": null,
+      "quantity": null,
+      "actualStart": null,
+      "actualEnd": null,
+      "plan": null,
+      "fact": null
+    },
+    {
+      "id": "foundation",
+      "name": "Устройство фундамента",
+      "start": "2026-08-01",
+      "end": "2026-09-15",
+      "zone": "Б",
+      "resources": [
+        {
+          "equipment": "mixer",
+          "quantity": 1
+        },
+        {
+          "equipment": "crane",
+          "quantity": 1
+        }
+      ],
+      "parentId": "construction",
+      "rulePolicy": "required-and-unexpected",
+      "equipment": null,
+      "quantity": null,
+      "actualStart": null,
+      "actualEnd": null,
+      "plan": null,
+      "fact": null
+    },
+    {
+      "id": "frame",
+      "name": "Монтаж каркаса",
+      "start": "2026-09-01",
+      "end": "2026-09-30",
+      "zone": "А",
+      "resources": [
+        {
+          "equipment": "crane",
+          "quantity": 1
+        }
+      ],
+      "parentId": "construction",
+      "rulePolicy": "required-and-unexpected",
+      "equipment": null,
+      "quantity": null,
+      "actualStart": null,
+      "actualEnd": null,
+      "plan": null,
+      "fact": null
+    }
+  ]
+}

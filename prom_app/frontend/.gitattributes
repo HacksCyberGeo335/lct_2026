@@ -1,0 +1,2 @@
+# SHA-256 is checked against the exact delivered bytes on every platform.
+/public/catalog/*.json -text
