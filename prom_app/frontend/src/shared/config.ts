@@ -1,9 +1,14 @@
+import { demoAvailable } from '../app/demoExtension';
 import type { Mode } from '../domain/models';
 export function readConfig(env: Record<string, unknown>): { mode: Mode; apiBase: string } {
-  const mode = env.VITE_APP_MODE ?? (env.PROD ? 'api' : 'demo');
+  const mode = env.VITE_APP_MODE ?? (demoAvailable && !env.PROD ? 'demo' : 'api');
   if (mode !== 'demo' && mode !== 'api')
     throw new Error(
       'VITE_APP_MODE должен быть demo или api. Исправьте конфигурацию и пересоберите приложение.',
+    );
+  if (mode === 'demo' && !demoAvailable)
+    throw new Error(
+      'Демонстрационный режим отсутствует в этой сборке. Используйте ветку demo или VITE_APP_MODE=api.',
     );
   const configured = String(env.VITE_API_BASE_URL ?? '/api');
   const invalid = () =>

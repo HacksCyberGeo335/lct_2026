@@ -2,15 +2,11 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, expect, it, vi } from 'vitest';
 import { loadCatalog } from './catalog';
-import { loadInspectionDemo } from './inspectionDemo';
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
-for (const [name, load] of [
-  ['catalog', loadCatalog],
-  ['demo', loadInspectionDemo],
-] as const) {
+for (const [name, load] of [['catalog', loadCatalog]] as const) {
   for (const phase of ['headers', 'body']) {
     it(name + ' times out while waiting for ' + phase + ' and aborts the request', async () => {
       vi.useFakeTimers();

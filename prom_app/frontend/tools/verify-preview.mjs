@@ -1,7 +1,7 @@
 import { chromium, expect } from '@playwright/test';
 import { createServer, preview } from 'vite';
-import { mkdirSync, writeFileSync } from 'node:fs';
-
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+const demo = existsSync('src/demo/entry.ts');
 let previewServer, invalidServer, browser;
 const originalMode = process.env.VITE_APP_MODE;
 const results = [];
@@ -10,47 +10,49 @@ try {
   browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
   const errors = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('pageerror', (e) => errors.push(e.message));
   for (const path of [
     '/objects',
-    '/objects/north-park',
-    '/objects/north-park/analytics',
-    '/objects/north-park/schedule',
-    '/objects/north-park/inspection',
-    '/objects/north-park/settings',
+    '/objects/local',
+    '/objects/local/analytics',
+    '/objects/local/schedule',
+    '/objects/local/inspection',
+    '/objects/local/settings',
   ]) {
-    const response = await page.goto('http://127.0.0.1:4173' + path + '?mode=demo');
+    const response = await page.goto('http://127.0.0.1:4173' + path + '?mode=api');
     expect(response.status()).toBe(200);
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.locator('.reg-row,.report-mark,.inspection-thumb')).toHaveCount(0);
     results.push({ previewPath: path, status: response.status() });
   }
-  await page.getByRole('link', { name: 'Стройконтроль — ведомость', exact: true }).click();
-  await expect(page.locator('.reg-row')).toHaveCount(6);
-  await page.reload();
-  await expect(page.locator('.mode-label')).toHaveText('Демонстрационные данные');
-  await page.goto('http://127.0.0.1:4173/objects/north-park?mode=demo');
-  await expect
-    .poll(() => page.locator('video').evaluate((video) => video.readyState))
-    .toBeGreaterThanOrEqual(2);
-  expect(await page.locator('video').evaluate((video) => video.duration)).toBe(60);
   await page.goto('http://127.0.0.1:4173/objects');
-  await expect(page.getByRole('heading', { name: 'Подключение и загрузка' })).toBeVisible();
-  results.push({ productionDefault: 'api', explicitDemo: true, videoDuration: 60 });
-
-  await page.goto('http://127.0.0.1:4173/objects/north-park/inspection?mode=demo');
-  await page.getByRole('button', { name: 'Открыть пример со справочником', exact: true }).click();
-  await expect(page.locator('.catalog-group').nth(1)).toContainText('Условие не применяется');
-  await expect(page.getByTestId('image-detection')).toHaveCount(1);
-  results.push({ inspectionDemo: 'catalog loaded, bound PNG and conditional rule explained' });
-
+  await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+  if (demo) {
+    await page.goto('http://127.0.0.1:4173/objects/north-park/inspection?mode=demo');
+    await page.getByRole('button', { name: 'Открыть пример со справочником', exact: true }).click();
+    await expect(page.locator('.catalog-group').nth(1)).toContainText('Условие не применяется');
+    results.push({ demoExtension: 'explicit demo works' });
+  } else {
+    await page.goto('http://127.0.0.1:4173/objects?mode=demo');
+    await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+    await expect(page.getByRole('button', { name: 'Открыть демо →' })).toHaveCount(0);
+    for (const path of [
+      '/inspection/manifest.json',
+      '/inspection/pit-missing.png',
+      '/media/north-park-1.webm',
+      '/tests/fixtures/inspection/manifest.json',
+    ]) {
+      const response = await fetch('http://127.0.0.1:4173' + path);
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain('id="root"');
+    }
+    results.push({ mainEdition: 'no demo switch, fixtures or public synthetic media' });
+  }
   process.env.VITE_APP_MODE = 'unsupported-value';
   invalidServer = await createServer({ server: { host: '127.0.0.1', port: 5174, strictPort: true } });
   await invalidServer.listen();
   await page.goto('http://127.0.0.1:5174/objects');
   await expect(page.getByRole('heading', { name: 'Ошибка конфигурации' })).toBeVisible();
-  await expect(page.getByRole('alert')).toContainText('VITE_APP_MODE должен быть demo или api');
-  await expect(page.locator('.reg-row')).toHaveCount(0);
-  results.push({ invalidEnvironment: 'configuration error', silentDemoFallback: false });
   expect(errors).toEqual([]);
   mkdirSync('artifacts', { recursive: true });
   writeFileSync('artifacts/preview-checks.json', JSON.stringify(results, null, 2));

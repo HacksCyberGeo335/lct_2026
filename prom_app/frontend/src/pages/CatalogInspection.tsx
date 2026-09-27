@@ -2,17 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp, useFilters } from '../app/context';
 import { useCatalog } from '../api/catalog';
-import { loadInspectionDemo } from '../api/inspectionDemo';
+import { demoExtension } from '../app/demoExtension';
 import type { Catalog } from '../domain/catalog';
 import type { Project, Stage } from '../domain/models';
 import { editProfile, profileForStage } from '../domain/profileTransitions';
 import { leafStages } from '../domain/plan';
-import {
-  allRequirements,
-  emptyProfile,
-  validateProfile,
-  type CatalogProfile,
-} from '../domain/catalogInspection';
+import { emptyProfile, validateProfile, type CatalogProfile } from '../domain/catalogInspection';
 import { useInspectionSession } from '../features/inspection/session';
 import { WorkPicker } from '../features/catalog/WorkPicker';
 import { WorkDetails } from '../features/catalog/WorkDetails';
@@ -126,35 +121,17 @@ function Workspace({
     update({ plan: null, stage: null });
   }
   async function demo() {
-    if (controller.current) return;
+    if (controller.current || !demoExtension) return;
     setConfirm(false);
     setBusy(true);
     setError('');
     const abort = new AbortController();
     controller.current = abort;
     try {
-      const data = await loadInspectionDemo(abort.signal);
+      const data = await demoExtension.loadInspectionExample(objectId, catalog, abort.signal);
       if (abort.signal.aborted) return;
-      const p = emptyProfile(objectId, catalog.id),
-        groups = allRequirements(catalog, 'work_047');
-      const next: CatalogProfile = {
-        ...p,
-        workId: 'work_047',
-        kind: 'demo',
-        zone: 'А',
-        start: '2026-08-01',
-        end: '2026-08-31',
-        phases: groups.map((g) => g.phase),
-        conditions: { excavation_method: 'excavator', soil_transport: 'other' },
-        alternatives: Object.fromEntries(groups.map((g) => [g.requirement_id, [g.one_of[0]]])),
-        cameraId: '1',
-        modelId: data.frames[0].result.model,
-        coverage: 'adequate',
-        detectorValidated: true,
-        supportedClasses: ['excavator', 'dump_truck', 'crane'],
-      };
       replace(data.frames, data.plan);
-      change(next);
+      change(data.profile);
       setFrameRevision((n) => n + 1);
       update({ image: data.frames[0].id, stage: null, plan: null });
     } catch (e) {
@@ -175,15 +152,17 @@ function Workspace({
             <br />
             <span className="sub">377 работ · 127 видов техники · 18 классов детектора</span>
           </p>
-          <button
-            className="btn btn-primary"
-            disabled={busy || snapshotBusy}
-            onClick={() =>
-              session.frames.length || profile.workId || session.plan ? setConfirm(true) : void demo()
-            }
-          >
-            Открыть пример со справочником
-          </button>
+          {demoExtension && (
+            <button
+              className="btn btn-primary"
+              disabled={busy || snapshotBusy}
+              onClick={() =>
+                session.frames.length || profile.workId || session.plan ? setConfirm(true) : void demo()
+              }
+            >
+              Открыть пример со справочником
+            </button>
+          )}
         </div>
         <p className="sub">
           Карточки 3.1-reviewed · техника 1.1 · длительности 1.0. Источники проверены составителем;

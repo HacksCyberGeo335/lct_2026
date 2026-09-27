@@ -1,3 +1,4 @@
+import { demoAvailable } from '../app/demoExtension';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
@@ -37,7 +38,9 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
       <header className="pagehead">
         <p className="eyebrow">Рабочее подключение / API</p>
         <h1 className="h-page">{titles[section] ?? titles.objects}</h1>
-        <p className="meta">Загрузка видео подключена к действующему Gateway.</p>
+        <p className="meta">
+          Видео можно загрузить на сервер. Анализ и мониторинг ожидают подключения серверных функций.
+        </p>
         <Link className="btn btn-primary" to="/objects/unavailable/inspection?mode=api">
           Открыть проверку снимков →
         </Link>
@@ -47,16 +50,25 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
           <h2 className="h-sec">Подключение и загрузка</h2>
           <Upload onSelected={setSelected} />
         </div>
-        {health.data ? (
+        {health.error ? (
+          <QueryState error={health.error} />
+        ) : health.data ? (
           <p role="status" className="connection-ok">
             Gateway доступен · /health
           </p>
         ) : (
-          <QueryState pending={health.isPending} error={health.error} retry={() => void health.refetch()} />
+          <QueryState pending={health.isPending} />
         )}
+        <button className="btn btn-quiet" disabled={health.isFetching} onClick={() => void health.refetch()}>
+          {health.isFetching ? 'Проверяем подключение…' : 'Проверить подключение'}
+        </button>
         <p className="sub">
-          Реестр объектов, камеры, обработка, аналитика, календарные планы и настройки ещё не имеют API.
-          Реальные видео не связываются с демонстрационной аналитикой.
+          Ответ Gateway подтверждает только его доступность. Состояние базы и хранилища проверяется при
+          загрузке файла.
+        </p>
+        <p className="sub">
+          Реестр объектов, камеры, обработка, аналитика, календарные планы и настройки ещё не имеют API. После
+          загрузки результат анализа автоматически не создаётся.
         </p>
         {section === 'schedule' && <ImportPlan objectId="unavailable" />}
         {section === 'settings' && (
@@ -77,10 +89,11 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
             </select>
           </label>
           {recording.url ? (
-            <video key={recording.id} controls preload="metadata" className="api-video" src={recording.url} />
+            <StoredVideo key={recording.id} url={recording.url} />
           ) : (
             <p>Видео загружено. Сервер не предоставил отдельный адрес для просмотра.</p>
           )}
+          <p className="mono small-text">UUID: {recording.id}</p>
           <p>READY: видео загружено; анализ пока недоступен.</p>
           <p className="sub">
             Если видео не воспроизводится, проверьте доступность публичного URL и кодек. Список существует
@@ -89,10 +102,47 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
         </section>
       ) : (
         <section className="sheet">
-          <Empty title="Данные раздела пока недоступны">
-            Загрузите запись или явно выберите демонстрационный режим в верхней панели.
+          <Empty title="В этом сеансе нет загруженных записей">
+            Загрузите видео кнопкой «Загрузить запись». Список записей с сервера пока недоступен.
+            {demoAvailable && ' Демонстрационный сценарий можно открыть в верхней панели.'}
           </Empty>
         </section>
+      )}
+    </>
+  );
+}
+
+function StoredVideo({ url }: { url: string }) {
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [attempt, setAttempt] = useState(0);
+  return (
+    <>
+      <video
+        key={attempt}
+        controls
+        preload="metadata"
+        className="api-video"
+        src={url}
+        onLoadedMetadata={() => setState('ready')}
+        onError={() => setState('error')}
+      />
+      {state === 'loading' && <p role="status">Открываем видео из хранилища…</p>}
+      {state === 'error' && (
+        <div className="stack">
+          <p role="alert">
+            Не удалось воспроизвести видео. Проверьте доступность хранилища и поддержку кодека. Подтверждённая
+            загрузка сохранена.
+          </p>
+          <button
+            className="btn btn-quiet"
+            onClick={() => {
+              setState('loading');
+              setAttempt((n) => n + 1);
+            }}
+          >
+            Повторить просмотр
+          </button>
+        </div>
       )}
     </>
   );

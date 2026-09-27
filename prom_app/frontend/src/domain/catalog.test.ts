@@ -28,7 +28,7 @@ describe('reviewed catalog', () => {
   });
 });
 
-const demo = JSON.parse(readFileSync('public/inspection/manifest.json', 'utf8'));
+const demo = JSON.parse(readFileSync('tests/fixtures/inspection/manifest.json', 'utf8'));
 const frame = (): InspectionFrame => structuredClone(demo.frames[0]);
 function profile(workId = 'work_047'): CatalogProfile {
   const groups = allRequirements(catalog, workId);

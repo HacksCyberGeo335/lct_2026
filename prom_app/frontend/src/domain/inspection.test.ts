@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import manifest from '../../public/inspection/manifest.json';
+import manifest from '../../tests/fixtures/inspection/manifest.json';
 import { analysisResultSchema, evaluateFrame, moscowDate, type InspectionFrame } from './inspection';
 import { planSchema, resourcesOf } from './plan';
 import { parseAnalysisResult } from '../api/analysisResult';

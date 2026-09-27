@@ -1,3 +1,4 @@
+import { demoExtension, demoAvailable } from './app/demoExtension';
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'motion/react';
@@ -12,11 +13,6 @@ import {
 import { InspectionProvider } from './features/inspection/session';
 const Inspection = lazy(() => import('./pages/Inspection').then((m) => ({ default: m.Inspection })));
 import type { Mode } from './domain/models';
-import { Objects } from './pages/Objects';
-const Site = lazy(() => import('./pages/Site').then((module) => ({ default: module.Site })));
-const Analytics = lazy(() => import('./pages/Analytics').then((module) => ({ default: module.Analytics })));
-const Schedule = lazy(() => import('./pages/Schedule').then((module) => ({ default: module.Schedule })));
-const Settings = lazy(() => import('./pages/Settings').then((module) => ({ default: module.Settings })));
 import { ApiWorkspace } from './pages/ApiWorkspace';
 import { Empty, QueryState } from './shared/ui';
 import { appearance, transition } from './shared/motion';
@@ -29,7 +25,8 @@ function ObjectRoute({
   const { mode } = useApp(),
     query = useProject(),
     location = useLocation();
-  if (mode === 'api') return section === 'inspection' ? <Inspection /> : <ApiWorkspace section={section} />;
+  if (mode === 'api' || !demoExtension)
+    return section === 'inspection' ? <Inspection /> : <ApiWorkspace section={section} />;
   if (query.isPending || query.error)
     return <QueryState pending={query.isPending} error={query.error} retry={() => void query.refetch()} />;
   if (!query.project)
@@ -49,13 +46,13 @@ function ObjectRoute({
   return section === 'inspection' ? (
     <Inspection key={p.id} project={p} />
   ) : section === 'site' ? (
-    <Site key={p.id} project={p} />
+    <demoExtension.Site key={p.id} project={p} />
   ) : section === 'analytics' ? (
-    <Analytics key={p.id} project={p} />
+    <demoExtension.Analytics key={p.id} project={p} />
   ) : section === 'schedule' ? (
-    <Schedule key={p.id} project={p} />
+    <demoExtension.Schedule key={p.id} project={p} />
   ) : (
-    <Settings key={p.id} project={p} />
+    <demoExtension.Settings key={p.id} project={p} />
   );
 }
 function Shell() {
@@ -64,7 +61,7 @@ function Shell() {
     location = useLocation(),
     navigate = useNavigate(),
     reduce = useReducedMotion();
-  const [lastObjectId, setLastObjectId] = useState('north-park');
+  const [lastObjectId, setLastObjectId] = useState(demoExtension?.initialObjectId ?? '');
   const pathObjectId = location.pathname.startsWith('/objects/')
     ? location.pathname.split('/')[2]
     : undefined;
@@ -148,16 +145,21 @@ function Shell() {
             </select>
           </label>
         )}
-        <button className="mode-switch" onClick={() => changeMode(mode === 'demo' ? 'api' : 'demo')}>
-          {mode === 'demo' ? 'Подключение API →' : 'Открыть демо →'}
-        </button>
+        {demoAvailable && (
+          <button className="mode-switch" onClick={() => changeMode(mode === 'demo' ? 'api' : 'demo')}>
+            {mode === 'demo' ? 'Подключение API →' : 'Открыть демо →'}
+          </button>
+        )}
       </div>
       <main id="main" className="wrap app-main" tabIndex={-1}>
         <motion.div key={location.pathname} {...appearance(reduce)}>
           <Suspense fallback={<QueryState pending />}>
             <Routes>
               <Route path="/" element={<Navigate to={'/objects' + contextSearch} replace />} />
-              <Route path="/objects" element={<Objects />} />
+              <Route
+                path="/objects"
+                element={mode === 'demo' && demoExtension ? <demoExtension.Objects /> : <ApiWorkspace />}
+              />
               <Route path="/objects/:objectId" element={<ObjectRoute section="site" />} />
               <Route path="/objects/:objectId/analytics" element={<ObjectRoute section="analytics" />} />
               <Route path="/objects/:objectId/schedule" element={<ObjectRoute section="schedule" />} />
@@ -196,8 +198,17 @@ function Shell() {
 export default function App({ initialMode, apiBase }: { initialMode: Mode; apiBase: string }) {
   const location = useLocation();
   const requested = new URLSearchParams(location.search).get('mode');
-  const mode = requested === 'demo' || requested === 'api' ? requested : initialMode;
-  return <ModeSession key={mode} mode={mode} apiBase={apiBase} />;
+  const mode = requested === 'api' ? 'api' : requested === 'demo' && demoAvailable ? 'demo' : initialMode;
+  return (
+    <>
+      {requested === 'demo' && !demoAvailable && (
+        <p className="wrap inspection-notice" role="status">
+          Демонстрационный режим доступен только в ветке demo. Эта сборка работает с API.
+        </p>
+      )}
+      <ModeSession key={mode} mode={mode} apiBase={apiBase} />
+    </>
+  );
 }
 function ModeSession({ mode, apiBase }: { mode: Mode; apiBase: string }) {
   const [recordings, setRecordings] = useState<LocalRecording[]>([]);

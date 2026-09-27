@@ -93,7 +93,7 @@ export function FrameWorkspace({
       {!frame ? (
         <div className="sheet">
           <Empty
-            title={session.frames.length ? 'Снимок недоступен' : 'Добавьте снимки или откройте пример'}
+            title={session.frames.length ? 'Снимок недоступен' : 'Добавьте снимки площадки'}
             action={
               session.frames.length ? (
                 <button className="btn btn-quiet" onClick={() => update({ image: null })}>

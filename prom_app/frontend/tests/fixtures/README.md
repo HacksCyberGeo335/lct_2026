@@ -17,3 +17,10 @@ and navigation without any backend requests.
 ```sh
 ffmpeg -f lavfi -i testsrc2=size=160x90:rate=10 -t 3 -c:v libx264 -pix_fmt yuv420p -crf 35 -movflags +faststart -an sample-h264.mp4
 ```
+
+## Inspection fixtures
+
+`inspection/` contains original synthetic PNGs and bound JSON results used only by
+unit and browser regression tests. They do not ship in `dist`. The production main
+edition has no public sample images or precomputed results. Do not move these files
+back into `public` in main. The separate demo edition keeps its own public examples.

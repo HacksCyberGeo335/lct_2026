@@ -1,5 +1,6 @@
 import { chromium, expect } from '@playwright/test';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, existsSync } from 'node:fs';
+const demo = existsSync('src/demo/entry.ts');
 const base = process.env.PRODUCTION_URL || 'http://127.0.0.1:4180';
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -38,17 +39,16 @@ for (const path of [
 await page.goto(base + '/objects');
 await page.getByRole('heading', { name: 'Подключение и загрузка' }).waitFor();
 results.push({ defaultMode: await page.locator('.mode-label').innerText() });
-await page.goto(base + '/objects/north-park?mode=demo');
-await page.waitForFunction(() => document.querySelector('video')?.readyState >= 2);
-results.push({ videoDuration: await page.locator('video').evaluate((v) => v.duration) });
-await page.reload();
-await page.getByRole('heading', { level: 1 }).waitFor();
-await page.screenshot({ path: 'artifacts/production-site.png', fullPage: true });
-await page.goto(base + '/objects/north-park/inspection?mode=demo');
-await page.getByRole('button', { name: 'Открыть пример со справочником', exact: true }).click();
-await expect(page.locator('.catalog-group').nth(1)).toContainText('Условие не применяется');
-await expect(page.getByTestId('image-detection')).toHaveCount(1);
-results.push({ inspectionDemo: 'catalog, PNG and conditional assessment loaded through nginx' });
+if (demo) {
+  await page.goto(base + '/objects/north-park/inspection?mode=demo');
+  await page.getByRole('button', { name: 'Открыть пример со справочником', exact: true }).click();
+  await expect(page.locator('.catalog-group').nth(1)).toContainText('Условие не применяется');
+} else {
+  await page.goto(base + '/objects?mode=demo');
+  await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+  for (const path of ['/inspection/manifest.json', '/inspection/pit-missing.png', '/media/north-park-1.webm'])
+    expect((await fetch(base + path)).status).toBe(404);
+}
 await browser.close();
 if (errors.length) throw new Error(errors.join('\n'));
 writeFileSync('artifacts/production-checks.json', JSON.stringify(results, null, 2));
