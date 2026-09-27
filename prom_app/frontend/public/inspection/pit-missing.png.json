@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "image": {
+    "name": "pit-missing.png",
+    "width": 1280,
+    "height": 720,
+    "sha256": "d42006b2644344ba474d025f7d6bf2f2def2f8edd0b02108a2867754acf3616e"
+  },
+  "captured_at": "2026-08-25T11:19:22.000Z",
+  "camera_id": "1",
+  "zone": "А",
+  "state": "succeeded",
+  "model": "Синтетический пример, не ML",
+  "quality": {
+    "usable": true,
+    "reason": ""
+  },
+  "error": null,
+  "detections": [
+    {
+      "id": "north-park-1-0",
+      "class_id": "exc",
+      "confidence": 0.97,
+      "bbox": [
+        0.09,
+        0.34,
+        0.2,
+        0.33
+      ]
+    }
+  ]
+}
