@@ -80,6 +80,9 @@ func (r *responseRecorder) Write(body []byte) (int, error) {
 }
 
 func normalizeEndpoint(path string) string {
+	if strings.HasPrefix(path, "/api/photos/") && strings.HasSuffix(path, "/upload-complete") {
+		return "/api/photos/{uuid}/upload-complete"
+	}
 	if strings.HasPrefix(path, "/api/videos/") && strings.HasSuffix(path, "/upload-complete") {
 		return "/api/videos/{uuid}/upload-complete"
 	}

@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"path"
 	"strconv"
@@ -18,8 +20,14 @@ import (
 
 type VideoHandler struct {
 	cfg     config.Config
-	repo    *repository.Repository
+	repo    uploadRepository
 	storage *storage.HTTPClient
+}
+
+type uploadRepository interface {
+	CreateUploadingVideo(context.Context, repository.CreateVideoParams) error
+	GetVideo(context.Context, string) (repository.Video, error)
+	MarkVideoReady(context.Context, repository.ReadyVideoParams) error
 }
 
 type initUploadRequest struct {
@@ -38,6 +46,8 @@ func NewVideoHandler(cfg config.Config, repo *repository.Repository, storageClie
 }
 
 func (h *VideoHandler) Routes(mux *http.ServeMux) {
+	mux.HandleFunc("/api/photos/init-upload", h.InitUpload)
+	mux.HandleFunc("/api/photos/", h.VideoAction)
 	mux.HandleFunc("/api/videos/init-upload", h.InitUpload)
 	mux.HandleFunc("/api/videos/", h.VideoAction)
 }
@@ -64,6 +74,14 @@ func (h *VideoHandler) InitUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mediaType := "video"
+	if strings.HasPrefix(r.URL.Path, "/api/photos/") {
+		mediaType = "photo"
+		if photoContentType(req.FileName) == "" {
+			http.Error(w, "only JPG and PNG photos are supported", http.StatusBadRequest)
+			return
+		}
+	}
 	uuid, err := newUUID()
 	if err != nil {
 		http.Error(w, "failed to generate uuid", http.StatusInternalServerError)
@@ -74,6 +92,7 @@ func (h *VideoHandler) InitUpload(w http.ResponseWriter, r *http.Request) {
 	storageKey := path.Join(h.cfg.OriginalsBucket, uuid, objectName)
 	if err := h.repo.CreateUploadingVideo(r.Context(), repository.CreateVideoParams{
 		UUID:       uuid,
+		MediaType:  mediaType,
 		VideoName:  objectName,
 		StorageKey: storageKey,
 		SizeBytes:  req.Size,
@@ -111,6 +130,14 @@ func (h *VideoHandler) VideoAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	expectedType := "video"
+	if strings.HasPrefix(r.URL.Path, "/api/photos/") {
+		expectedType = "photo"
+	}
+	if video.MediaType != expectedType {
+		http.Error(w, "media not found", http.StatusNotFound)
+		return
+	}
 	objectKey := strings.TrimPrefix(video.StorageKey, h.cfg.OriginalsBucket+"/")
 	meta, err := h.storage.HeadObject(r.Context(), h.cfg.OriginalsBucket, objectKey)
 	if errors.Is(err, storage.ErrNotFound) {
@@ -122,6 +149,13 @@ func (h *VideoHandler) VideoAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if expectedType == "photo" {
+		contentType, _, _ := mime.ParseMediaType(meta.ContentType)
+		if meta.ContentLength <= 0 || contentType != photoContentType(video.VideoName) {
+			http.Error(w, "uploaded photo must be a non-empty JPG or PNG with matching Content-Type", http.StatusBadRequest)
+			return
+		}
+	}
 	if err := h.repo.MarkVideoReady(r.Context(), repository.ReadyVideoParams{
 		UUID:        uuid,
 		SizeBytes:   meta.ContentLength,
@@ -136,7 +170,10 @@ func (h *VideoHandler) VideoAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseVideoAction(urlPath string) (string, string, bool) {
-	const prefix = "/api/videos/"
+	prefix := "/api/videos/"
+	if strings.HasPrefix(urlPath, "/api/photos/") {
+		prefix = "/api/photos/"
+	}
 	if !strings.HasPrefix(urlPath, prefix) {
 		return "", "", false
 	}
@@ -173,4 +210,15 @@ func ParseContentLength(value string) int64 {
 		return 0
 	}
 	return contentLength
+}
+
+func photoContentType(name string) string {
+	switch strings.ToLower(path.Ext(name)) {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	default:
+		return ""
+	}
 }

@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS general_video_table (
+    media_type TEXT NOT NULL DEFAULT 'video',
     uuid UUID PRIMARY KEY,
     video_name TEXT,
     storage_key TEXT,

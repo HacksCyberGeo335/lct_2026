@@ -1,8 +1,8 @@
 # API Specification: Frontend, API Gateway, Upload Service
 
-Дата сверки с исходным кодом: 2026-09-05.
+Дата обновления: 2026-09-29.
 
-Документ описывает реализованный в репозитории контракт загрузки видео. Источники истины: обработчики HTTP, frontend-клиент, SQL-схема и Docker Compose. Это описание текущей реализации, а не проект будущего API. Адреса и имена бакетов ниже приведены для значений по умолчанию в Compose; окружение может их переопределять. Проверка выполнена по исходникам, без запуска интеграционного сценария.
+Документ описывает контракт загрузки фото/видео и постановку задач обработки. Подробные примеры ниже используют видео; фото проходят тот же цикл через `/api/photos/...` с отдельным UUID на каждый файл. Входы/выходы воркеров и передача следующему этапу описаны в [docs/INFERENCE.md](docs/INFERENCE.md). Адреса и бакеты приведены для настроек Compose по умолчанию. Проверка загрузки и очереди выполнена с PostgreSQL/MinIO; inference проверен на контролируемых ответах HTTP-клиентов, реальные endpoint ещё не заданы.
 
 ## 1. Компоненты и границы ответственности
 
@@ -10,10 +10,11 @@
 | --- | --- | --- |
 | Frontend: React + TypeScript | Выбор файла, инициализация, прямой PUT в MinIO, подтверждение, отображение прогресса | `File`, статус UI, процент, ошибка и UUID в памяти React; постоянного хранения нет |
 | Frontend nginx | Раздача собранного приложения и SPA fallback | Статические файлы сборки; API не проксирует |
-| API Gateway | Проксирование `/api/videos/` в Upload Service, CORS, health, access logs | Собственной БД, сессий или кеша нет |
-| Upload Service | Создание UUID и записи видео, проверка объекта через HEAD, обновление статуса | Читает и пишет `general_video_table`; не принимает байты видео |
-| PostgreSQL | Состояние видео и метаданные оригинала | `general_video_table`, заготовка `meta_video_table` |
-| MinIO | Хранение бинарных объектов | Оригиналы видео; ещё два бакета созданы для будущих артефактов |
+| API Gateway | Проксирование `/api/videos/` и `/api/photos/`, CORS, health, access logs | Собственной БД, сессий или кеша нет |
+| Upload Service | UUID, проверка HEAD, атомарное подтверждение и постановка задач | `general_video_table`, `processing_jobs`; байты идут напрямую в MinIO |
+| PostgreSQL | Состояние файлов, очереди обработки и следующего этапа | `general_video_table`, `meta_video_table`, `processing_jobs`, `analysis_tasks` |
+| MinIO | Оригиналы и JSON-артефакты | Фото/видео, результаты кадров и manifest |
+| yolo_worker / vlm_worker | Декодирование и вызов внешних моделей | Результаты в S3; после обеих веток — `analysis_tasks` |
 | Redis | Поднят в Compose | В данном сценарии не используется; ключей, очередей и сессий код не создаёт |
 
 Файл передаётся по отдельному пути **браузер → MinIO**. Через **браузер → Gateway → Upload Service** проходят только управляющие запросы. Браузер не обращается к PostgreSQL; Gateway не обращается к PostgreSQL или MinIO.
@@ -77,7 +78,7 @@ sequenceDiagram
     PG-->>US: Запись с storage_key
     US->>S3: HEAD /bucket/object_key (внутренний endpoint)
     S3-->>US: 2xx, Content-Length, Content-Type, ETag
-    US->>PG: UPDATE status=READY и метаданные
+    US->>PG: Транзакция: READY + метаданные + задачи yolo/vlm
     PG-->>US: Успешное обновление
     US-->>GW: 200, пустое тело
     GW-->>FE: 200, пустое тело
@@ -86,7 +87,7 @@ sequenceDiagram
 
 Диаграмма показывает успешную ветку. При разных origin браузер также выполняет CORS preflight `OPTIONS` перед JSON POST и прямым PUT; разрешённые preflight могут кешироваться браузером. Gateway отвечает на свои OPTIONS самостоятельно. OPTIONS для MinIO идёт непосредственно в MinIO.
 
-1. Выбор файла не вызывает API. HTML-поле имеет `accept="video/*"`, но проверки содержимого видео нет.
+1. Выбор файлов не вызывает API. В режиме видео выбирается один файл; в режиме фото — один или несколько JPG/JPEG/PNG. У каждого свой прогресс и UUID.
 2. `init-upload` создаёт запись в PostgreSQL. На этом шаге объект в MinIO не создаётся, доступность хранилища не проверяется.
 3. Backend возвращает через Gateway `200 OK` с `uuid`, `upload_url`, `storage_key`: это сигнал frontend, что инициализация успешна и можно начинать передачу файла. Frontend ждёт ответ через `await initVideoUpload`, проверяет HTTP-успех и наличие трёх полей и только затем делает один PUT всего файла через `XMLHttpRequest`. При ошибке init PUT не запускается. Прогресс основан на `xhr.upload.onprogress`.
 4. Только после успешного PUT frontend вызывает `upload-complete`. Процент `100%` ещё не означает успешное подтверждение в БД.
@@ -115,7 +116,9 @@ Frontend последовательно выполняет `await initVideoUploa
 | `POST /api/videos/{uuid}/upload-complete` | Frontend → Gateway → Upload Service | `200`, пустое тело |
 | `HEAD /{bucket}/{object_key}` | Upload Service → MinIO напрямую | Upload Service принимает любой `2xx` и читает headers |
 
-Gateway проксирует весь префикс `/api/videos/`, но бизнес-обработчики реализуют только два POST выше. При стандартном `UPLOAD_SERVICE_URL` путь сохраняется; тело и ответ передаются reverse proxy. Gateway меняет upstream Host на target host. Использование target URL с дополнительным path-префиксом не является частью описанного сценария.
+Gateway проксирует `/api/videos/` и `/api/photos/`. Для обоих доступны `init-upload` и `{uuid}/upload-complete` с одинаковыми DTO. При стандартном `UPLOAD_SERVICE_URL` путь сохраняется; тело и ответ передаются reverse proxy. Gateway меняет upstream Host на target host.
+
+Фото: на init проверяется расширение `.jpg/.jpeg/.png` без учёта регистра; на complete — ненулевой размер и соответствующий расширению MIME `image/jpeg` или `image/png`. Несовпадение типа строки БД с маршрутом фото/видео даёт 404. Декодирование содержимого выполняют воркеры.
 
 API чтения списка/карточки видео, удаления, отмены, получения статуса, запуска обработки, WebSocket, multipart/resumable upload и выдачи presigned URL в этих сервисах отсутствуют. HEAD объекта является внутренним вызовом Upload Service, а не отдельным API-методом Gateway.
 
@@ -215,9 +218,9 @@ Frontend передаёт `{}`, но обработчик вообще не чи
 
 1. SELECT `uuid`, `video_name`, `storage_key`, `status` из `general_video_table` по UUID.
 2. Из `storage_key` удаляется префикс текущего настроенного бакета `<MINIO_ORIGINALS_BUCKET>/`.
-3. Storage client строит URL через `url.JoinPath(endpoint, bucket, path.Clean(objectKey))` и выполняет unsigned HEAD через `MINIO_INTERNAL_ENDPOINT`. Таймаут HTTP-клиента: 10 секунд.
+3. Storage client задаёт декодированный `URL.Path` и сериализует URL с корректным экранированием, включая `%` в имени. Выполняется unsigned HEAD через `MINIO_INTERNAL_ENDPOINT`, таймаут 10 секунд.
 4. При `2xx` читает `Content-Length`, `Content-Type`, `ETag`; крайние двойные кавычки ETag удаляются.
-5. UPDATE выставляет `status='READY'`, записывает размер, MIME и ETag из HEAD. При наличии штатного триггера обновляется `updated_at`.
+5. В одной транзакции UPDATE выставляет `READY`, сохраняет размер/MIME/ETag, проверяет RowsAffected и создаёт задачи `yolo`/`vlm` через `ON CONFLICT DO NOTHING`. Обновляется `updated_at`. Ошибка любого SQL-запроса откатывает транзакцию.
 6. Возвращает **`200 OK` с пустым телом**. JSON-ответа и URL скачивания нет.
 
 Заявленный при инициализации размер не сравнивается с размером объекта и перезаписывается. Нулевой размер объекта не отклоняется. Содержимое видео, корректность MIME и контрольная сумма не проверяются; ETag просто сохраняется. Текущий статус строки загружается, но не ограничивает переход в READY.
@@ -236,7 +239,7 @@ Frontend передаёт `{}`, но обработчик вообще не чи
 
 При HEAD 403 клиент получает `502`, а не `403`. Строгая валидация UUID с ответом `400` не реализована.
 
-Повторный `upload-complete` разрешён: сервис снова делает HEAD и UPDATE даже для READY. При неизменном объекте статус и метаданные остаются теми же, но меняется `updated_at`. Это не полностью неизменяющая повторная операция. `RowsAffected` после UPDATE не проверяется: если строку удалить между SELECT и UPDATE внешним действием, возможен `200` без обновлённой строки.
+Повторный `upload-complete` разрешён: HEAD и UPDATE выполняются снова, `updated_at` меняется. Пара `(media_uuid,kind)` уникальна, задачи не дублируются и не сбрасываются. RowsAffected проверяется; отсутствие обновлённой строки считается ошибкой. Для нового содержимого файла создавайте новый UUID, поскольку обработка привязана к подтверждённому оригиналу.
 
 ## 8. Health, CORS и общие HTTP-правила
 
@@ -291,21 +294,21 @@ Access-Control-Allow-Headers: Content-Type, Authorization
 | `audio_codec` | `TEXT`, nullable | Аудиокодек |
 | `bitrate` | `BIGINT`, nullable | Битрейт; единица не закреплена кодом записи, поскольку его нет |
 
-Upload Service **не читает и не заполняет `meta_video_table`**, анализ видео после загрузки не запускается. Успешная загрузка не создаёт строку в этой таблице. Каскадное удаление затрагивает только связанную SQL-строку, не объект MinIO.
+Upload Service не заполняет `meta_video_table`. Успешная загрузка создаёт задачи `processing_jobs`; запущенные воркеры обрабатывают их и создают `analysis_tasks` после обеих успешных веток. Каскадное удаление затрагивает связанные SQL-строки, не объекты MinIO. Поля очередей: [POSTGRES.md](docs/POSTGRES.md).
 
 ### Инициализация и постоянное хранение
 
 SQL находится в `infra/postgres/initdb/001_video_tables.sql`, копируется в `/docker-entrypoint-initdb.d/`. Init-скрипт предназначен для первого создания БД на пустом volume. PostgreSQL использует `postgres_data:/var/lib/postgresql/data`.
 
-При старте Upload Service выполняет подключение, Ping и `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` для трёх полей `original_*`. Это не полная миграция: отсутствующую `general_video_table`, таблицу метаданных или триггер этот код не создаст. Ошибка соединения или ALTER останавливает запуск сервиса. Приведённая схема и обновление `updated_at` предполагают применение штатного init SQL.
+При старте Upload Service добавляет недостающие `media_type`/`original_*` и таблицы очередей из встроенного `processing.sql`. Это не полноценная система миграций: исходная `general_video_table` и её триггер должны существовать. Новые БД получают обе init-схемы из `infra/postgres/initdb`.
 
 ## 10. MinIO: бакеты, ключи и метаданные
 
 | Бакет по умолчанию | Назначение | Использование текущим кодом |
 | --- | --- | --- |
-| `video-originals-prom` | Исходные видео | Frontend PUT; Upload Service HEAD |
+| `video-originals-prom` | Исходные фото/видео | Frontend PUT; Upload Service HEAD; workers GET |
 | `video-derived-prod` | Будущие производные файлы | Только создаётся через s3_init |
-| `video-detections-prod` | Будущие результаты детекций | Только создаётся через s3_init |
+| `video-detections-prod` | JSON YOLO/Qwen и manifest | Подписанные S3 PUT/GET воркеров |
 
 Для `example.mp4`:
 
@@ -341,9 +344,9 @@ initial -> selected -> initializing -> uploading -> completing -> success
 | PUT не завершился для клиента | Обычно строка `UPLOADING`; наличие объекта зависит от фактического результата MinIO | `Не удалось загрузить файл в хранилище` |
 | Complete не завершился для клиента | PUT получил успех; БД может быть `UPLOADING` или уже `READY`, если потерян ответ после UPDATE | `Видео загружено в хранилище, но не удалось подтвердить завершение загрузки` |
 
-При ошибке complete UI показывает UUID. При ошибке PUT полученный UUID не сохраняется для отображения. Детальные ответы API-клиент превращает в Error, но компонент показывает общие сообщения по этапам.
+Полученный UUID сохраняется и отображается, включая ошибки PUT и complete. Детальные ответы API-клиент превращает в Error; компонент показывает сообщение этапа.
 
-После ошибки или успеха нажатие «Загрузить видео» запускает весь сценарий заново, начиная с нового init и UUID. Отдельной кнопки повторного подтверждения нет, хотя API допускает повторный POST complete по известному UUID. Автоматические retries отсутствуют.
+Кнопка повтора обрабатывает только неудачные загрузки. Полученный UUID используется повторно; после успешного PUT повторяется только complete. Успешные файлы пропускаются. Автоматических повторов загрузки на frontend нет; повторы inference выполняют воркеры независимо.
 
 ### Согласованность хранилищ
 
@@ -400,7 +403,7 @@ docker compose exec postgres psql -U prom_app -d prom_app -c \
   "SELECT uuid, video_name, storage_key, status, original_size_bytes, original_content_type, original_etag, created_at, updated_at FROM general_video_table ORDER BY created_at DESC LIMIT 10;"
 ```
 
-Ожидаемый результат успешного сценария: строка READY, размер и MIME объекта, ETag, объект в originals. Строка в `meta_video_table`, производные объекты или результаты детекции не появляются.
+После успешной загрузки: строка READY, размер/MIME/ETag, объект в originals и две задачи processing_jobs. При работающих воркерах затем появляются JSON-результаты и manifest в S3, а после обеих веток — analysis_tasks. READY само по себе не означает готовность inference. meta_video_table не заполняется.
 
 ## 14. Исходники контракта
 

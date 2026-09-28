@@ -33,12 +33,14 @@ func NewHTTPClient(endpoint string) *HTTPClient {
 }
 
 func (c *HTTPClient) HeadObject(ctx context.Context, bucket string, objectKey string) (ObjectMetadata, error) {
-	objectURL, err := url.JoinPath(c.endpoint, bucket, path.Clean(objectKey))
+	objectURL, err := url.Parse(c.endpoint)
 	if err != nil {
 		return ObjectMetadata{}, err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, objectURL, nil)
+	objectURL.Path = path.Join(objectURL.Path, bucket, objectKey)
+	objectURL.RawPath = ""
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, objectURL.String(), nil)
 	if err != nil {
 		return ObjectMetadata{}, err
 	}

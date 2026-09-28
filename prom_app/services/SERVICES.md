@@ -7,7 +7,8 @@
 ```text
 services/
 ├── api_gateway/
-└── upload_service/
+├── upload_service/
+└── media_worker/       # yolo_worker и vlm_worker
 ```
 
 `session_service` и `websocket_service` сейчас не являются рабочими сервисами в compose и не документируются как runtime-компоненты.
@@ -21,7 +22,7 @@ services/
 - отдаёт `GET /health`;
 - добавляет CORS headers;
 - пишет JSON access logs;
-- проксирует `/api/videos/*` во внутренний `upload_service`.
+- проксирует `/api/videos/*` и `/api/photos/*` во внутренний `upload_service`.
 
 Порт:
 
@@ -46,7 +47,8 @@ http://api_gateway:8080
 - возвращает `uuid`, `upload_url`, `storage_key`;
 - принимает `POST /api/videos/{uuid}/upload-complete`;
 - проверяет объект в MinIO через `HEAD`;
-- обновляет запись видео до статуса `READY`.
+- поддерживает аналогичные маршруты `/api/photos/...`;
+- атомарно обновляет файл до `READY` и создаёт задачи `yolo` и `vlm`.
 
 Порт:
 
@@ -58,6 +60,18 @@ http://localhost:${UPLOAD_SERVICE_HOST_PORT:-8081}
 
 ```text
 http://upload_service:8081
+```
+
+## yolo_worker и vlm_worker
+
+Два Python-процесса из общего [media_worker](media_worker/README.md). Получают задачи PostgreSQL, скачивают оригинал из MinIO, декодируют фото или выборку кадров видео. `yolo_worker` отправляет FP32 RGB `[1,3,768,768]` во внешний Triton/YOLO26m; `vlm_worker` отправляет JPEG кадра и инструкцию во внешний vLLM/Qwen3-VL-2B-Instruct.
+
+YOLO возвращает детекции с координатами и классами, Qwen — структурированные наблюдения. Воркеры сохраняют JSON и manifest в MinIO, отмечают `SUCCEEDED`; после обеих веток создают `analysis_tasks` со ссылками для следующего этапа. Есть lease/heartbeat, повторы и защита от устаревших результатов. [Полный контракт](../../docs/INFERENCE.md).
+
+Запуск после настройки endpoint:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.workers.yml up -d --build yolo_worker vlm_worker
 ```
 
 ## Runtime dependencies

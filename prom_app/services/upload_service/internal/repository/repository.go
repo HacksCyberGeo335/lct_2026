@@ -3,10 +3,14 @@ package repository
 import (
 	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+//go:embed processing.sql
+var processingSchema string
 
 var ErrNotFound = errors.New("not found")
 
@@ -16,6 +20,7 @@ type Repository struct {
 
 type CreateVideoParams struct {
 	UUID       string
+	MediaType  string
 	VideoName  string
 	StorageKey string
 	SizeBytes  int64
@@ -30,6 +35,7 @@ type ReadyVideoParams struct {
 
 type Video struct {
 	UUID       string
+	MediaType  string
 	VideoName  string
 	StorageKey string
 	Status     string
@@ -65,20 +71,21 @@ func (r *Repository) CreateUploadingVideo(ctx context.Context, params CreateVide
 			video_name,
 			storage_key,
 			status,
-			original_size_bytes
+			original_size_bytes,
+			media_type
 		)
-		VALUES ($1, $2, $3, 'UPLOADING', $4)
-	`, params.UUID, params.VideoName, params.StorageKey, params.SizeBytes)
+		VALUES ($1, $2, $3, 'UPLOADING', $4, $5)
+	`, params.UUID, params.VideoName, params.StorageKey, params.SizeBytes, params.MediaType)
 	return err
 }
 
 func (r *Repository) GetVideo(ctx context.Context, uuid string) (Video, error) {
 	var video Video
 	err := r.db.QueryRowContext(ctx, `
-		SELECT uuid, video_name, storage_key, status
+		SELECT uuid, video_name, storage_key, status, media_type
 		FROM general_video_table
 		WHERE uuid = $1
-	`, uuid).Scan(&video.UUID, &video.VideoName, &video.StorageKey, &video.Status)
+	`, uuid).Scan(&video.UUID, &video.VideoName, &video.StorageKey, &video.Status, &video.MediaType)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Video{}, ErrNotFound
 	}
@@ -86,7 +93,12 @@ func (r *Repository) GetVideo(ctx context.Context, uuid string) (Video, error) {
 }
 
 func (r *Repository) MarkVideoReady(ctx context.Context, params ReadyVideoParams) error {
-	_, err := r.db.ExecContext(ctx, `
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	result, err := tx.ExecContext(ctx, `
 		UPDATE general_video_table
 		SET
 			status = 'READY',
@@ -95,15 +107,38 @@ func (r *Repository) MarkVideoReady(ctx context.Context, params ReadyVideoParams
 			original_etag = $4
 		WHERE uuid = $1
 	`, params.UUID, params.SizeBytes, params.ContentType, params.ETag)
-	return err
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected != 1 {
+		return ErrNotFound
+	}
+	_, err = tx.ExecContext(ctx, `
+  INSERT INTO processing_jobs (media_uuid, kind)
+  VALUES ($1, 'yolo'), ($1, 'vlm')
+  ON CONFLICT (media_uuid, kind) DO NOTHING
+ `, params.UUID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
 }
 
 func ensureCompatibleSchema(ctx context.Context, db *sql.DB) error {
 	_, err := db.ExecContext(ctx, `
 		ALTER TABLE general_video_table
+			ADD COLUMN IF NOT EXISTS media_type TEXT NOT NULL DEFAULT 'video',
 			ADD COLUMN IF NOT EXISTS original_size_bytes BIGINT,
 			ADD COLUMN IF NOT EXISTS original_content_type TEXT,
 			ADD COLUMN IF NOT EXISTS original_etag TEXT
 	`)
+	if err != nil {
+		return err
+	}
+	_, err = db.ExecContext(ctx, processingSchema)
 	return err
 }

@@ -1,5 +1,7 @@
 # Инструкция по проверке upload pipeline
 
+Проверки ниже описывают загрузку. Теперь после успешного `upload-complete` также создаются две задачи `processing_jobs` (`yolo`/`vlm`); `READY` не означает завершённый inference. Фото используют аналогичные маршруты `/api/photos/...`. Запуск воркеров, проверка очереди и следующего этапа: [docs/INFERENCE.md](docs/INFERENCE.md), [тесты воркеров](prom_app/services/media_worker/README.md).
+
 Документ описывает ручную проверку цепочки:
 
 ```text

@@ -1,6 +1,6 @@
 # PostgreSQL
 
-PostgreSQL хранит состояние загруженных видео и метаданные оригинального файла.
+PostgreSQL хранит состояние загруженных фото/видео, метаданные оригиналов и очереди обработки.
 
 ## Сервис
 
@@ -63,6 +63,7 @@ PostgreSQL entrypoint выполняет файлы из `docker-entrypoint-init
 `general_video_table`:
 
 - `uuid` - primary key видео;
+- `media_type` - `video` или `photo` (для старых записей по умолчанию `video`);
 - `video_name` - имя исходного файла;
 - `storage_key` - key объекта в MinIO;
 - `status` - текущее состояние, сейчас используются `UPLOADING` и `READY`;
@@ -90,9 +91,19 @@ PostgreSQL entrypoint выполняет файлы из `docker-entrypoint-init
 1. На `POST /api/videos/init-upload` создаёт запись в `general_video_table` со статусом `UPLOADING`.
 2. Возвращает браузеру `uuid`, `upload_url` и `storage_key`.
 3. На `POST /api/videos/{uuid}/upload-complete` проверяет файл в MinIO через `HEAD`.
-4. Обновляет запись до статуса `READY`, сохраняет размер, content type и ETag.
+4. В одной транзакции обновляет запись до `READY`, сохраняет размер, content type и ETag, создаёт задачи `yolo` и `vlm` в `processing_jobs`.
 
-В коде `upload_service` дополнительно вызывается compatibility check, который добавляет недостающие колонки `original_size_bytes`, `original_content_type`, `original_etag`, если их нет в старой локальной базе.
+Маршруты `/api/photos/...` используют ту же схему для каждого фото отдельно. Повтор подтверждения не дублирует задачи.
+
+В коде `upload_service` compatibility check добавляет `media_type`, поля `original_*` и таблицы обработки в существующей БД. Для новых volumes схема очередей лежит в `infra/postgres/initdb/002_processing_jobs.sql`; её копия `upload_service/internal/repository/processing.sql` встроена в бинарный файл Go.
+
+## Очереди обработки
+
+`processing_jobs`: уникальная пара `(media_uuid, kind)`, где kind — `yolo` или `vlm`; статус `QUEUED/RUNNING/SUCCEEDED/FAILED`, число и лимит попыток, время следующей попытки, lease/token, ошибка и JSON-ссылка `result` на manifest в S3. Захват через `FOR UPDATE SKIP LOCKED`; heartbeat и token защищают от завершения устаревшим воркером.
+
+`analysis_tasks`: одна строка на `media_uuid`, статус `QUEUED`, версия события и ссылки на оба результата в `payload`. Создаётся после обеих успешных веток. Это вход следующего этапа анализа; его потребитель пока не реализован.
+
+Обе таблицы ссылаются на `general_video_table` с `ON DELETE CASCADE`. Удаление SQL-строк не удаляет объекты S3. Контракты, повторы и восстановление описаны в [INFERENCE.md](INFERENCE.md).
 
 ## Проверка
 

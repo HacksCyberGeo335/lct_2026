@@ -1,6 +1,6 @@
 # MinIO
 
-MinIO используется как локальное S3-compatible object storage для исходных видео и будущих производных артефактов обработки.
+MinIO используется как S3-compatible хранилище исходных фото/видео и JSON-результатов воркеров.
 
 ## Сервисы
 
@@ -72,9 +72,9 @@ MINIO_DETECTIONS_BUCKET=video-detections-prod
 
 `s3_init` создаёт:
 
-- `${MINIO_ORIGINALS_BUCKET:-video-originals-prom}` - исходные видео;
+- `${MINIO_ORIGINALS_BUCKET:-video-originals-prom}` - исходные фото и видео;
 - `${MINIO_DERIVED_BUCKET:-video-derived-prod}` - будущие производные файлы;
-- `${MINIO_DETECTIONS_BUCKET:-video-detections-prod}` - будущие результаты детекций.
+- `${MINIO_DETECTIONS_BUCKET:-video-detections-prod}` - результаты YOLO и Qwen, manifest каждой успешной попытки.
 
 Для originals bucket дополнительно выставляется public anonymous policy, потому что текущий frontend загружает файл прямым unsigned `PUT` по URL, который вернул backend.
 
@@ -88,7 +88,9 @@ Browser
   -> POST /api/videos/<uuid>/upload-complete
 ```
 
-`upload_service` после `upload-complete` делает `HEAD` во внутренний MinIO endpoint и обновляет запись в PostgreSQL.
+`upload_service` после `upload-complete` делает `HEAD` во внутренний MinIO endpoint и атомарно обновляет запись и создаёт две задачи PostgreSQL. Для фото используются аналогичные `/api/photos/...` маршруты.
+
+Воркеры скачивают оригиналы через подписанный S3 GET с `If-Match` по ETag, проверяют размер и считают SHA-256. Результаты пишутся подписанным PUT в `<uuid>/<yolo|vlm>/<job_id>/<lease_token>/frames/<frame_index>.json` и `manifest.json`. У каждой попытки свой префикс; следующий этап получает ссылки только на принятые успешные результаты. Неполные попытки могут оставить объекты — автоматическая уборка не реализована. Форматы JSON: [INFERENCE.md](INFERENCE.md).
 
 ## Проверка
 
