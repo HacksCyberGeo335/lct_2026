@@ -1282,3 +1282,50 @@ tbody th {
 .registry + .sub {
   margin-top: 14px;
 }
+.project-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 16px;
+}
+.project-editor,
+.project-card {
+  border: 1px solid var(--rule-2);
+  border-radius: var(--r-sheet);
+  padding: 20px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.project-editor-fields {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.project-resource-row {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.project-resource-row .field {
+  flex: 1;
+  min-width: 120px;
+}
+.project-stage-table {
+  width: 100%;
+  min-width: 620px;
+  text-align: left;
+}
+.project-stage-table th,
+.project-stage-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--rule-2);
+}
+.project-stage-table small {
+  display: block;
+  color: var(--ink-2);
+}
+.project-form-grid input,
+.project-editor input,
+.project-editor textarea {
+  min-width: 0;
+}

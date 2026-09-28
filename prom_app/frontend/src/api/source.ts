@@ -1,4 +1,5 @@
 import { demoExtension } from '../app/demoExtension';
+import { projectRepository } from '../features/projects/repository';
 import type { Mode, Project, Stage, Settings, Report } from '../domain/models';
 export class UnsupportedError extends Error {
   constructor(feature: string) {
@@ -17,7 +18,29 @@ const unavailable = (feature: string): never => {
   throw new UnsupportedError(feature);
 };
 const api: DataSource = {
-  objects: async () => unavailable('Реестр объектов'),
+  objects: async (signal) => {
+    if (!projectRepository.available) return unavailable('Реестр объектов');
+    const projects = await projectRepository.list(signal);
+    // Existing navigation/inspection needs only identity and the calendar.
+    // These compatibility defaults must not be used as analytics or measured progress.
+    return projects.map((p, index) => ({
+      id: p.id,
+      number: index + 1,
+      name: p.name,
+      district: p.district,
+      permit: p.permit,
+      programme: p.programme,
+      stages: p.plan?.stages ?? [],
+      cameras: [],
+      status: 'idle' as const,
+      stage: p.plan?.name ?? 'График не задан',
+      progress: 0,
+      planError: null,
+      forecast: null,
+      updatedAt: '',
+      coverage: null,
+    }));
+  },
   report: async () => unavailable('Аналитика'),
   settings: async () => unavailable('Настройки'),
   saveSettings: async () => unavailable('Сохранение настроек'),

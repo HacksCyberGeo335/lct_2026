@@ -26,7 +26,11 @@ function ObjectRoute({
     query = useProject(),
     location = useLocation();
   if (mode === 'api' || !demoExtension)
-    return section === 'inspection' ? <Inspection /> : <ApiWorkspace section={section} />;
+    return section === 'inspection' ? (
+      <Inspection project={query.project} />
+    ) : (
+      <ApiWorkspace section={section} />
+    );
   if (query.isPending || query.error)
     return <QueryState pending={query.isPending} error={query.error} retry={() => void query.refetch()} />;
   if (!query.project)
@@ -69,7 +73,7 @@ function Shell() {
     if (pathObjectId && query.data?.some((project) => project.id === pathObjectId))
       setLastObjectId(pathObjectId);
   }, [pathObjectId, query.data]);
-  const objectId = pathObjectId || (mode === 'demo' ? lastObjectId : 'unavailable');
+  const objectId = pathObjectId || (mode === 'demo' ? lastObjectId : (query.data?.[0]?.id ?? 'unavailable'));
   const contextSearch = location.search;
   const route = '/objects/' + encodeURIComponent(objectId);
   const links = [

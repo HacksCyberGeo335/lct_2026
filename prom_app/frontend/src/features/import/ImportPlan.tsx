@@ -17,14 +17,20 @@ export function ImportPlan({
   objectId,
   onApply,
   disabled = false,
+  initialOpen = false,
+  targetLabel,
+  onClose,
 }: {
   objectId: string;
   onApply?: (stages: Stage[]) => void;
   disabled?: boolean;
+  initialOpen?: boolean;
+  targetLabel?: string;
+  onClose?: () => void;
 }) {
   const { mode } = useApp(),
     client = useQueryClient();
-  const [open, setOpen] = useState(false),
+  const [open, setOpen] = useState(initialOpen),
     [input, setInput] = useState<CsvInput | null>(null),
     [mapping, setMapping] = useState<Mapping>(defaultMapping([])),
     [error, setError] = useState(''),
@@ -45,6 +51,7 @@ export function ImportPlan({
     version.current++;
     setReading(false);
     setOpen(false);
+    onClose?.();
   }
   async function read(file: File | undefined) {
     const current = ++version.current;
@@ -115,9 +122,11 @@ export function ImportPlan({
       >
         <p className="sub">
           CSV UTF-8, запятая или точка с запятой. Даты — ГГГГ-ММ-ДД. До 2000 этапов / 2 МБ.{' '}
-          {onApply
-            ? 'Импорт заменяет план текущей проверки; календарь объекта сохраняется.'
-            : 'Импорт заменяет календарный план выбранного объекта.'}{' '}
+          {targetLabel
+            ? `Импорт заменяет весь график объекта «${targetLabel}». Изменения применяются только к черновику формы, не к серверному объекту.`
+            : onApply
+              ? 'Импорт заменяет план текущей проверки; календарь объекта сохраняется.'
+              : 'Импорт заменяет календарный план выбранного объекта.'}{' '}
           Ресурсы: exc:1|dump:2. Для иерархии укажите ID родителя. Правило required-only проверяет нехватку;
           required-and-unexpected — также лишние классы.
         </p>
@@ -205,9 +214,11 @@ export function ImportPlan({
         )}
         {success ? (
           <Notice>
-            {onApply
-              ? 'План применён к проверке в текущем сеансе. На сервер не отправлен.'
-              : 'План применён локально к этому демообъекту.'}
+            {targetLabel
+              ? `График объекта «${targetLabel}» перенесён в черновик формы. На сервер не отправлен.`
+              : onApply
+                ? 'План применён к проверке в текущем сеансе. На сервер не отправлен.'
+                : 'План применён локально к этому демообъекту.'}
           </Notice>
         ) : (
           <div className="actions">
@@ -222,6 +233,11 @@ export function ImportPlan({
               Отмена
             </button>
           </div>
+        )}
+        {success && (
+          <button className="btn btn-primary" onClick={close}>
+            Готово
+          </button>
         )}
       </Modal>
     </>

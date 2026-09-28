@@ -6,7 +6,7 @@ import { useApp } from '../app/context';
 import { request, readJson } from '../api/http';
 import { Upload } from '../features/upload/Upload';
 import { AnalysisPanel } from '../features/analysis/AnalysisPanel';
-import { ImportPlan } from '../features/import/ImportPlan';
+import { ObjectWorkspace } from '../features/projects/ObjectWorkspace';
 import { Empty, QueryState } from '../shared/ui';
 import { useState } from 'react';
 export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
@@ -46,6 +46,7 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
           Открыть проверку снимков →
         </Link>
       </header>
+      {['objects', 'site', 'schedule', 'settings'].includes(section) && <ObjectWorkspace />}
       <section className="sheet sheet-pad stack">
         <div className="section-heading">
           <h2 className="h-sec">Подключение и загрузка</h2>
@@ -71,7 +72,6 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
           Реестр объектов, камеры, обработка, аналитика, календарные планы и настройки ещё не имеют API. После
           загрузки результат анализа автоматически не создаётся.
         </p>
-        {section === 'schedule' && <ImportPlan objectId="unavailable" />}
         {section === 'settings' && (
           <p>Оповещения и список сотрудников недоступны. Серверное сохранение настроек не реализовано.</p>
         )}
