@@ -3,8 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { source } from '../api/source';
 import type { Mode, Recording } from '../domain/models';
+import type { FileAnalysis } from '../features/analysis/types';
 export interface LocalRecording extends Recording {
   objectId: string;
+  analysis?: FileAnalysis;
 }
 export interface AppContextValue {
   mode: Mode;

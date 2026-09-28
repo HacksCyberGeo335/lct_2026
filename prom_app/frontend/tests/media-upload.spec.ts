@@ -65,6 +65,18 @@ test('multiple photos retain completed uploads and retry only failed confirmatio
   await page.getByLabel('Файл', { exact: true }).selectOption(id(1));
   await expect(page.getByRole('img', { name: 'первое.png', exact: true })).toBeVisible();
   await expect(page.locator('video')).toHaveCount(0);
+  const analysis = page.getByRole('region', { name: 'Обработка и результат LLM' });
+  await expect(analysis).toContainText('Файл: первое.png');
+  await expect(analysis).toContainText('Заготовка интерфейса');
+  await expect(analysis.getByRole('progressbar')).toHaveCount(0);
+  await page.getByLabel('Файл', { exact: true }).selectOption(id(3));
+  await expect(analysis).toContainText('Файл: третье.png');
+  await expect(analysis).not.toContainText('Файл: первое.png');
+  await page.setViewportSize({ width: 375, height: 812 });
+  await analysis.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'artifacts/analysis-mobile.png' });
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({ path: 'artifacts/media-upload-photos.png', fullPage: true });
 });
 

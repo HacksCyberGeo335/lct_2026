@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useApp } from '../app/context';
 import { request, readJson } from '../api/http';
 import { Upload } from '../features/upload/Upload';
+import { AnalysisPanel } from '../features/analysis/AnalysisPanel';
 import { ImportPlan } from '../features/import/ImportPlan';
 import { Empty, QueryState } from '../shared/ui';
 import { useState } from 'react';
@@ -104,6 +105,7 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
             Если файл не открывается, проверьте доступность хранилища и поддержку формата браузером. Список
             существует только в текущем сеансе: серверный GET списка пока отсутствует.
           </p>
+          <AnalysisPanel fileId={recording.id} fileName={recording.name} analysis={recording.analysis} />
         </section>
       ) : (
         <section className="sheet">
