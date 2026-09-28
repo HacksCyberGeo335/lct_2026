@@ -31,14 +31,14 @@ test('API upload sequence and confirmation retry without another PUT', async ({ 
   await page.goto('/objects?mode=api');
   await expect(page.getByRole('heading', { name: 'Подключение и загрузка' })).toBeVisible();
   await expect(page.locator('.reg-row')).toHaveCount(0);
-  await page.getByRole('button', { name: '+ Загрузить запись' }).click();
+  await page.getByRole('button', { name: '+ Загрузить фото или видео' }).click();
   await page
-    .getByLabel('Файл записи')
+    .getByLabel('Фото или видео')
     .setInputFiles({ name: 'камера #1.mp4', mimeType: 'video/mp4', buffer: Buffer.from('0123456789') });
-  await page.getByRole('button', { name: 'Загрузить видео', exact: true }).click();
+  await page.getByRole('button', { name: 'Загрузить файлы', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('HTTP 502');
   await page.getByRole('button', { name: 'Повторить подтверждение' }).click();
-  await expect(page.getByRole('dialog')).toContainText('READY: видео загружено; анализ пока недоступен.');
+  await expect(page.getByRole('dialog')).toContainText('READY: файлы загружены; анализ пока недоступен.');
   expect(calls).toEqual(['init', 'put', 'complete', 'complete']);
 });
 test('failed PUT and cancellation never call complete', async ({ page }) => {
@@ -59,11 +59,11 @@ test('failed PUT and cancellation never call complete', async ({ page }) => {
     return r.fulfill({ status: 200 });
   });
   await page.goto('/objects?mode=api');
-  await page.getByRole('button', { name: '+ Загрузить запись' }).click();
+  await page.getByRole('button', { name: '+ Загрузить фото или видео' }).click();
   await page
-    .getByLabel('Файл записи')
+    .getByLabel('Фото или видео')
     .setInputFiles({ name: 'a.mp4', mimeType: 'video/mp4', buffer: Buffer.from('video') });
-  await page.getByRole('button', { name: 'Загрузить видео', exact: true }).click();
+  await page.getByRole('button', { name: 'Загрузить файлы', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('HTTP 500');
   expect(confirms).toBe(0);
   await page.unroute('**/mock-put/**');

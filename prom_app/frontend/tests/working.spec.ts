@@ -107,12 +107,12 @@ test('confirmed upload survives playback failure and retries viewing without upl
     return r.fulfill({ status: 200 });
   });
   await page.goto('/objects?mode=api');
-  await page.getByRole('button', { name: '+ Загрузить запись' }).click();
+  await page.getByRole('button', { name: '+ Загрузить фото или видео' }).click();
   await page
-    .getByLabel('Файл записи')
+    .getByLabel('Фото или видео')
     .setInputFiles({ name: 'a.mp4', mimeType: 'video/mp4', buffer: Buffer.from('video') });
-  await page.getByRole('button', { name: 'Загрузить видео', exact: true }).click();
-  await page.getByRole('button', { name: 'Перейти к записи', exact: true }).click();
+  await page.getByRole('button', { name: 'Загрузить файлы', exact: true }).click();
+  await page.getByRole('button', { name: 'Перейти к файлам', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Подтверждённая загрузка сохранена');
   await page.getByRole('button', { name: 'Повторить просмотр', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('Не удалось воспроизвести');

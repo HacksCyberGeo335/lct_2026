@@ -39,7 +39,7 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
         <p className="eyebrow">Рабочее подключение / API</p>
         <h1 className="h-page">{titles[section] ?? titles.objects}</h1>
         <p className="meta">
-          Видео можно загрузить на сервер. Анализ и мониторинг ожидают подключения серверных функций.
+          Фото и видео можно загрузить на сервер. Анализ и мониторинг ожидают подключения серверных функций.
         </p>
         <Link className="btn btn-primary" to="/objects/unavailable/inspection?mode=api">
           Открыть проверку снимков →
@@ -77,10 +77,10 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
       </section>
       {recording ? (
         <section className="sheet sheet-pad stack">
-          <h2 className="h-sec">Загруженные в этом сеансе записи</h2>
+          <h2 className="h-sec">Загруженные в этом сеансе файлы</h2>
           <label className="field">
-            Запись
-            <select value={recording.id} onChange={(e) => setSelected(e.target.value)}>
+            Файл
+            <select aria-label="Файл" value={recording.id} onChange={(e) => setSelected(e.target.value)}>
               {recordings.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
@@ -89,21 +89,26 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
             </select>
           </label>
           {recording.url ? (
-            <StoredVideo key={recording.id} url={recording.url} />
+            <StoredMedia
+              key={recording.id}
+              url={recording.url}
+              image={recording.kind === 'image'}
+              name={recording.name}
+            />
           ) : (
-            <p>Видео загружено. Сервер не предоставил отдельный адрес для просмотра.</p>
+            <p>Файл загружен. Сервер не предоставил отдельный адрес для просмотра.</p>
           )}
           <p className="mono small-text">UUID: {recording.id}</p>
-          <p>READY: видео загружено; анализ пока недоступен.</p>
+          <p>READY: файл загружен; анализ пока недоступен.</p>
           <p className="sub">
-            Если видео не воспроизводится, проверьте доступность публичного URL и кодек. Список существует
-            только в текущем сеансе: серверный GET списка пока отсутствует.
+            Если файл не открывается, проверьте доступность хранилища и поддержку формата браузером. Список
+            существует только в текущем сеансе: серверный GET списка пока отсутствует.
           </p>
         </section>
       ) : (
         <section className="sheet">
-          <Empty title="В этом сеансе нет загруженных записей">
-            Загрузите видео кнопкой «Загрузить запись». Список записей с сервера пока недоступен.
+          <Empty title="В этом сеансе нет загруженных файлов">
+            Добавьте файлы кнопкой «Загрузить фото или видео». Список файлов с сервера пока недоступен.
             {demoAvailable && ' Демонстрационный сценарий можно открыть в верхней панели.'}
           </Empty>
         </section>
@@ -112,26 +117,40 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
   );
 }
 
-function StoredVideo({ url }: { url: string }) {
+function StoredMedia({ url, image, name }: { url: string; image: boolean; name: string }) {
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [attempt, setAttempt] = useState(0);
   return (
     <>
-      <video
-        key={attempt}
-        controls
-        preload="metadata"
-        className="api-video"
-        src={url}
-        onLoadedMetadata={() => setState('ready')}
-        onError={() => setState('error')}
-      />
-      {state === 'loading' && <p role="status">Открываем видео из хранилища…</p>}
+      {image ? (
+        <img
+          key={attempt}
+          className="api-image"
+          src={url}
+          alt={name}
+          onLoad={() => setState('ready')}
+          onError={() => setState('error')}
+        />
+      ) : (
+        <video
+          key={attempt}
+          controls
+          preload="metadata"
+          className="api-video"
+          src={url}
+          onLoadedMetadata={() => setState('ready')}
+          onError={() => setState('error')}
+        />
+      )}
+      <a className="btn btn-quiet" href={url} target="_blank" rel="noopener noreferrer">
+        Открыть оригинал
+      </a>
+      {state === 'loading' && <p role="status">Открываем файл из хранилища…</p>}
       {state === 'error' && (
         <div className="stack">
           <p role="alert">
-            Не удалось воспроизвести видео. Проверьте доступность хранилища и поддержку кодека. Подтверждённая
-            загрузка сохранена.
+            {image ? 'Не удалось показать фото.' : 'Не удалось воспроизвести видео.'} Проверьте доступность
+            хранилища и поддержку формата. Подтверждённая загрузка сохранена.
           </p>
           <button
             className="btn btn-quiet"

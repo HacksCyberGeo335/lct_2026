@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useApp } from '../../app/context';
 import {
   storageReadUrl,
@@ -6,19 +6,33 @@ import {
   initVideoUpload,
   uploadVideoToStorage,
   UploadSession,
-  validateVideo,
 } from '../../api/videoApi';
+import {
+  imageFormatLabel,
+  mediaAccept,
+  mediaKind,
+  validateMediaBatch,
+  videoFormatLabel,
+} from '../../shared/mediaFiles';
 import { Modal, Notice } from '../../shared/ui';
+
 type Phase = 'idle' | 'preparing' | 'transferring' | 'confirming' | 'success' | 'error' | 'cancelled';
 const labels: Record<Phase, string> = {
-  idle: 'Файл готов к загрузке',
+  idle: 'Ожидает загрузки',
   preparing: 'Подготовка загрузки',
   transferring: 'Передача в хранилище',
   confirming: 'Подтверждение сервером',
-  success: 'Видео загружено',
+  success: 'Загружено',
   error: 'Загрузка не завершена',
   cancelled: 'Передача отменена',
 };
+interface UploadItem {
+  file: File;
+  session: UploadSession;
+  phase: Phase;
+  progress: number | null;
+  uuid: string;
+}
 export function Upload({
   objectId = '',
   cameraId = null,
@@ -29,166 +43,216 @@ export function Upload({
   onSelected?: (id: string) => void;
 }) {
   const { mode, apiBase, addRecording } = useApp();
-  const [open, setOpen] = useState(false),
-    [file, setFile] = useState<File | null>(null),
-    [phase, setPhase] = useState<Phase>('idle'),
-    [progress, setProgress] = useState<number | null>(null),
-    [error, setError] = useState(''),
-    [uuid, setUuid] = useState('');
-  const session = useRef<UploadSession | null>(null),
-    aborter = useRef<AbortController | null>(null),
-    busyRef = useRef(false);
-  const busy = ['preparing', 'transferring', 'confirming'].includes(phase);
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<UploadItem[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const errorId = useId();
+  const hintId = useId();
+  const aborter = useRef<AbortController | null>(null);
+  const busyRef = useRef(false);
   useEffect(() => () => aborter.current?.abort(), []);
-  function select(next: File | null) {
-    if (busyRef.current) return;
-    const issue = next ? validateVideo(next) : null;
-    setFile(issue ? null : next);
+  const completed = items.filter((item) => item.phase === 'success').length;
+  const success = items.length > 0 && completed === items.length;
+  const next = items.find((item) => item.phase !== 'success');
+  function select(files: File[]) {
+    if (busyRef.current || !files.length) return;
+    const issue = validateMediaBatch(files);
     setError(issue ?? '');
-    setPhase('idle');
-    setProgress(null);
-    setUuid('');
-    session.current = null;
+    setItems(
+      issue
+        ? []
+        : files.map((file) => ({
+            file,
+            phase: 'idle',
+            progress: null,
+            uuid: '',
+            session: new UploadSession({
+              init: (f, s) => initVideoUpload(apiBase, f, s),
+              put: uploadVideoToStorage,
+              complete: (id, s) => completeVideoUpload(apiBase, id, s),
+            }),
+          })),
+    );
   }
   function close() {
     if (busyRef.current) aborter.current?.abort();
     setOpen(false);
   }
   async function run() {
-    if (!file || busyRef.current) return;
+    if (!next || busyRef.current) return;
     busyRef.current = true;
+    setBusy(true);
     const controller = new AbortController();
     aborter.current = controller;
     setError('');
-    setProgress(null);
     try {
-      let id: string, url: string | null;
-      if (mode === 'demo') {
-        // Local object URL is immediate; there is no byte-transfer progress or simulated ML.
-        controller.signal.throwIfAborted();
-        id = 'local-' + crypto.randomUUID();
-        url = URL.createObjectURL(file);
-      } else {
-        session.current ??= new UploadSession({
-          init: (f, s) => initVideoUpload(apiBase, f, s),
-          put: uploadVideoToStorage,
-          complete: (id, s) => completeVideoUpload(apiBase, id, s),
-        });
-        const ticket = await session.current.run(file, controller.signal, setPhase, setProgress);
-        id = ticket.uuid;
-        url = storageReadUrl(ticket);
+      // Sequential uploads bound network usage. Successful items are never retried.
+      for (const item of items) {
+        if (item.phase === 'success') continue;
+        const update = (patch: Partial<UploadItem>) => {
+          setItems((current) =>
+            current.map((entry) => (entry.session === item.session ? { ...entry, ...patch } : entry)),
+          );
+        };
+        try {
+          controller.signal.throwIfAborted();
+          update({ progress: null });
+          let id: string, url: string | null;
+          if (mode === 'demo') {
+            id = 'local-' + crypto.randomUUID();
+            url = URL.createObjectURL(item.file);
+          } else {
+            const ticket = await item.session.run(
+              item.file,
+              controller.signal,
+              (phase) => update({ phase }),
+              (progress) => update({ progress }),
+            );
+            id = ticket.uuid;
+            url = storageReadUrl(ticket);
+          }
+          addRecording({
+            id,
+            objectId,
+            cameraId,
+            name: item.file.name,
+            kind: mediaKind(item.file)!,
+            url,
+            capturedAt: '',
+            duration: 0,
+            processing: 'unsupported',
+          });
+          update({ uuid: id, phase: 'success' });
+          onSelected?.(id);
+        } catch (e) {
+          update({
+            uuid: item.session.ticket?.uuid ?? '',
+            phase: controller.signal.aborted ? 'cancelled' : 'error',
+          });
+          setError(
+            item.file.name +
+              ': ' +
+              (controller.signal.aborted
+                ? 'Отмена не удаляет созданную запись или частичный объект на сервере.'
+                : e instanceof Error
+                  ? e.message
+                  : 'Неизвестная ошибка'),
+          );
+          break;
+        }
       }
-      addRecording({
-        id,
-        objectId,
-        cameraId,
-        name: file.name,
-        kind: 'video',
-        url,
-        capturedAt: '',
-        duration: 0,
-        processing: 'unsupported',
-      });
-      setUuid(id);
-      setPhase('success');
-      onSelected?.(id);
-    } catch (e) {
-      setUuid(session.current?.ticket?.uuid ?? '');
-      setPhase(controller.signal.aborted ? 'cancelled' : 'error');
-      setError(
-        controller.signal.aborted
-          ? 'Отмена не удаляет созданную запись или частичный объект на сервере.'
-          : e instanceof Error
-            ? e.message
-            : 'Неизвестная ошибка',
-      );
     } finally {
       busyRef.current = false;
+      setBusy(false);
     }
   }
   return (
     <>
       <button className="btn btn-primary" onClick={() => setOpen(true)}>
-        + Загрузить запись
+        + Загрузить фото или видео
       </button>
       <Modal
         open={open}
         onClose={close}
-        title="Загрузка записи"
+        title="Загрузка фото и видео"
         description={
           mode === 'demo'
-            ? 'Локальный просмотр без отправки на сервер. После перезагрузки страницы или смены режима видео нужно выбрать заново.'
-            : 'Файл передаётся в MinIO, затем Gateway подтверждает загрузку.'
+            ? 'Локальный просмотр без отправки на сервер. После перезагрузки файлы нужно выбрать заново.'
+            : 'Файлы по очереди передаются в хранилище. Для каждого файла сервер подтверждает загрузку.'
         }
       >
-        <p className="sub">
-          MP4, WebM или MOV · до 2 ГБ (лимит интерфейса). Поддержка воспроизведения зависит от кодека. Сервер
-          не проверяет формат видео.
-        </p>
+        <div id={hintId} className="sub stack">
+          <p>Видео: {videoFormatLabel}. Одно видео до 2 ГБ.</p>
+          <p>Фото: {imageFormatLabel}. До 50 фото за раз, до 20 МБ каждое и 200 МБ суммарно.</p>
+          <p>
+            Это лимиты интерфейса. Просмотр зависит от формата и кодека браузера; загрузка не запускает
+            анализ.
+          </p>
+        </div>
         <label
           className={'dropzone' + (busy ? ' disabled' : '')}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
-            select(e.dataTransfer.files[0] ?? null);
+            select(Array.from(e.dataTransfer.files));
           }}
         >
-          <strong>{file ? file.name : 'Выберите или перетащите видео'}</strong>
-          <span>
-            {file
-              ? (file.size / 1024 / 1024).toLocaleString('ru-RU', { maximumFractionDigits: 1 }) + ' МБ'
-              : 'Один файл за раз'}
-          </span>
+          <strong>Выберите или перетащите фото или видео</strong>
+          <span>Одно видео или несколько фото</span>
           <input
-            aria-label="Файл записи"
+            aria-label="Фото или видео"
+            aria-describedby={error ? `${hintId} ${errorId}` : hintId}
+            aria-invalid={!!error}
             type="file"
-            accept=".mp4,.webm,.mov,video/mp4,video/webm,video/quicktime"
+            accept={mediaAccept}
+            multiple
             disabled={busy}
             onChange={(e) => {
-              select(e.target.files?.[0] ?? null);
+              select(Array.from(e.target.files ?? []));
               e.target.value = '';
             }}
           />
         </label>
-        {mode === 'api' && (
-          <p className="sub">
-            Связь видео с объектом и камерой доступна только в текущем сеансе: сервер не принимает эти поля.
-          </p>
+        {!!items.length && (
+          <>
+            <p role="status">
+              Загружено: {completed} из {items.length}
+              {busy ? ' · передача выполняется…' : ''}
+            </p>
+            <ol className="upload-queue" aria-label="Очередь загрузки">
+              {items.map((item, index) => (
+                <li key={index} className="stack">
+                  <strong>{item.file.name}</strong>
+                  <span className="sub">
+                    {(item.file.size / 1024 / 1024).toLocaleString('ru-RU', { maximumFractionDigits: 1 })} МБ
+                    · {labels[item.phase]}
+                  </span>
+                  {item.progress !== null && item.phase === 'transferring' && (
+                    <div className="upload-progress">
+                      <progress max="100" value={item.progress} aria-label={'Передано: ' + item.file.name} />
+                      <span className="mono">{item.progress}%</span>
+                    </div>
+                  )}
+                  {item.uuid && <span className="mono small-text">UUID: {item.uuid}</span>}
+                </li>
+              ))}
+            </ol>
+          </>
         )}
-        {progress !== null && (
-          <div className="upload-progress">
-            <progress max="100" value={progress} aria-label="Передано файла" />
-            <span className="mono">{progress}%</span>
-          </div>
-        )}
-        {phase !== 'idle' && <p role="status">{labels[phase]}</p>}
         {error && (
-          <p className="error-text" role="alert">
+          <p id={errorId} className="error-text" role="alert">
             {error}
           </p>
         )}
-        {uuid && <p className="mono small-text">UUID: {uuid}</p>}
-        {phase === 'success' ? (
+        {mode === 'api' && (
+          <p className="sub">
+            Связь файлов с объектом и камерой хранится только в текущем сеансе: сервер не принимает эти поля.
+          </p>
+        )}
+        {success ? (
           <>
             <Notice>
               {mode === 'api'
-                ? 'READY: видео загружено; анализ пока недоступен.'
-                : 'Видео открыто локально. Распознавание этого файла не выполнялось.'}
+                ? 'READY: файлы загружены; анализ пока недоступен.'
+                : 'Файлы открыты локально. Распознавание не выполнялось.'}
             </Notice>
             <button className="btn btn-primary" onClick={close}>
-              Перейти к записи
+              Перейти к файлам
             </button>
           </>
         ) : (
           <div className="actions">
-            <button className="btn btn-primary" disabled={!file || busy} onClick={() => void run()}>
-              {session.current?.transferred
+            <button className="btn btn-primary" disabled={!next || busy} onClick={() => void run()}>
+              {next?.session.transferred
                 ? 'Повторить подтверждение'
-                : session.current?.ticket
+                : next?.session.ticket
                   ? 'Повторить передачу'
                   : mode === 'demo'
                     ? 'Открыть локально'
-                    : 'Загрузить видео'}
+                    : completed
+                      ? 'Продолжить загрузку'
+                      : 'Загрузить файлы'}
             </button>
             {busy && (
               <button className="btn btn-quiet" onClick={() => aborter.current?.abort()}>
@@ -197,7 +261,12 @@ export function Upload({
             )}
           </div>
         )}
-        {phase === 'error' && !session.current?.ticket && mode === 'api' && (
+        {completed > 0 && !success && (
+          <p className="sub">
+            Уже загруженные файлы сохранены. Повтор продолжит очередь с незавершённого файла.
+          </p>
+        )}
+        {next?.phase === 'error' && !next.session.ticket && mode === 'api' && (
           <p className="sub">
             Результат инициализации может быть неизвестен. Новый ручной запуск может создать ещё одну запись.
           </p>

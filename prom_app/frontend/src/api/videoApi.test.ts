@@ -1,3 +1,4 @@
+import { validateMediaFile } from '../shared/mediaFiles';
 import { request } from './http';
 import { describe, it, expect, vi } from 'vitest';
 import {
@@ -5,7 +6,6 @@ import {
   storageReadUrl,
   uploadDto,
   UploadSession,
-  validateVideo,
   type UploadTransport,
 } from './videoApi';
 const id = '021472d8-a659-47de-893d-bedc24d015e7';
@@ -40,9 +40,11 @@ describe('Boundary contracts', () => {
     expect(uploadDto.safeParse({ uuid: 'foo' }).success).toBe(false);
     expect(uploadDto.safeParse({ ...ticket, upload_url: 'javascript:alert(1)' }).success).toBe(false);
     expect(() => buildStorageObjectUrl({ ...ticket, storage_key: 'bucket/../x' })).toThrow();
-    expect(validateVideo(new File([], 'x.mp4'))).toContain('пустой');
-    expect(validateVideo(new File(['text'], 'x.mp4', { type: 'text/html' }))).toContain('Поддерживаются');
-    expect(validateVideo(file)).toBeNull();
+    expect(validateMediaFile(new File([], 'x.mp4'))).toContain('пустой');
+    expect(validateMediaFile(new File(['text'], 'x.mp4', { type: 'text/html' }))).toContain(
+      'не соответствует',
+    );
+    expect(validateMediaFile(file)).toBeNull();
   });
   it('surfaces authorization errors and passes cancellation through fetch', async () => {
     vi.stubGlobal(

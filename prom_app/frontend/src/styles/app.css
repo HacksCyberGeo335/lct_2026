@@ -288,7 +288,7 @@ h2.h-sec {
   z-index: 81;
   top: 6vh;
   left: 50%;
-  margin-left: min(-350px, -46vw);
+  margin-left: max(-350px, -46vw);
   width: min(700px, 92vw);
   max-height: 88vh;
   overflow-y: auto;
@@ -522,10 +522,22 @@ tbody th {
 .events .empty-symbol {
   display: none;
 }
-.api-video {
+.api-video,
+.api-image {
   width: 100%;
   max-height: 480px;
   background: var(--plate);
+  object-fit: contain;
+}
+.upload-queue {
+  max-height: 240px;
+  overflow: auto;
+  padding-left: 24px;
+}
+.upload-queue li {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule-2);
+  overflow-wrap: anywhere;
 }
 .comparison {
   margin-top: 24px;

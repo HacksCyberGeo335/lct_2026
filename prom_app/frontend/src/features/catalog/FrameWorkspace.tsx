@@ -4,6 +4,7 @@ import { useFilters } from '../../app/context';
 import { type AnalysisResult, type InspectionFrame } from '../../domain/inspection';
 import { useInspectionSession } from '../inspection/session';
 import { openImages } from '../inspection/images';
+
 import { ImageViewer } from '../inspection/ImageViewer';
 import { readAnalysisFile, downloadJson, downloadResultTemplate } from '../../api/analysisResult';
 import { Empty, Modal } from '../../shared/ui';
@@ -38,7 +39,7 @@ export function FrameWorkspace({
             aria-label="Снимки площадки"
             type="file"
             multiple
-            accept=".png,.jpg,.jpeg,.webp"
+            accept=".png,.jpg,.jpeg,.webp,.bmp,.avif"
             disabled={busy || disabled}
             onChange={(e) => {
               const files = Array.from(e.target.files ?? []);
@@ -57,8 +58,10 @@ export function FrameWorkspace({
           />
         </label>
         <p className="sub">
-          PNG, JPEG, WebP · до 20 МБ на файл, 50 снимков / 200 МБ за сеанс. После перезагрузки снимки нужно
-          выбрать заново. На сервер они не отправляются.
+          PNG, JPEG, WebP, BMP, AVIF · до 20 МБ на файл, 50 снимков / 200 МБ за сеанс. Для проверки других
+          форматов экспортируйте фото в JPEG или PNG. После перезагрузки снимки нужно выбрать заново. Здесь
+          они открываются локально; для отправки в хранилище используйте «Загрузить фото или видео» в разделе
+          «Объекты».
         </p>
         {busy && <p role="status">Проверяем файлы…</p>}
         {error && (

@@ -1,7 +1,5 @@
 import type { InspectionFrame } from '../../domain/inspection';
-export const maxImages = 50;
-export const maxImageBytes = 20 * 1024 * 1024;
-export const maxBatchBytes = 200 * 1024 * 1024;
+import { maxImages, maxBatchBytes, mediaKind, validateMediaFile } from '../../shared/mediaFiles';
 export async function openImages(files: File[], existing: InspectionFrame[]): Promise<InspectionFrame[]> {
   if (!files.length) return [];
   if (!crypto.subtle || !crypto.randomUUID)
@@ -12,15 +10,19 @@ export async function openImages(files: File[], existing: InspectionFrame[]): Pr
   const frames: InspectionFrame[] = [];
   try {
     for (const file of files) {
-      if (
-        !file.size ||
-        file.size > maxImageBytes ||
-        !/\.(png|jpe?g|webp)$/i.test(file.name) ||
-        (file.type && !['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
-      )
-        throw new Error(file.name + ': нужен непустой PNG, JPEG или WebP размером до 20 МБ.');
+      const error = validateMediaFile(file);
+      if (error || mediaKind(file) !== 'image')
+        throw new Error(file.name + ': ' + (error ?? 'Выберите фото.'));
+      if (!/\.(png|jpe?g|webp|bmp|avif)$/i.test(file.name))
+        throw new Error(
+          file.name +
+            ': для локальной проверки экспортируйте фото в JPEG или PNG. Исходный файл можно загрузить в разделе «Объекты».',
+        );
       const bitmap = await createImageBitmap(file).catch(() => {
-        throw new Error(file.name + ': изображение повреждено или не поддерживается.');
+        throw new Error(
+          file.name +
+            ': браузер не смог открыть изображение. Для проверки снимков экспортируйте его в JPEG или PNG.',
+        );
       });
       const { width, height } = bitmap;
       bitmap.close();

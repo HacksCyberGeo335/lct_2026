@@ -105,7 +105,7 @@ export interface Recording {
   id: string;
   name: string;
   cameraId: string | null;
-  kind: 'synthetic' | 'synthetic-video' | 'video';
+  kind: 'synthetic' | 'synthetic-video' | 'video' | 'image';
   url: string | null;
   capturedAt: string;
   duration: number;

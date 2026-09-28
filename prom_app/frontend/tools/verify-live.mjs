@@ -26,12 +26,12 @@ try {
       requests.push({ method, path: new URL(r.url()).pathname, status: r.status() });
   });
   await page.goto(new URL('/objects?mode=api', base).href);
-  await page.getByRole('button', { name: '+ Загрузить запись' }).click();
-  await page.getByLabel('Файл записи').setInputFiles(resolve(file));
-  await page.getByRole('button', { name: 'Загрузить видео', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('READY: видео загружено', { timeout: 120000 });
+  await page.getByRole('button', { name: '+ Загрузить фото или видео' }).click();
+  await page.getByLabel('Фото или видео').setInputFiles(resolve(file));
+  await page.getByRole('button', { name: 'Загрузить файлы', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('READY: файлы загружены', { timeout: 120000 });
   const uuid = await page.getByRole('dialog').locator('.mono.small-text').innerText();
-  await page.getByRole('button', { name: 'Перейти к записи', exact: true }).click();
+  await page.getByRole('button', { name: 'Перейти к файлам', exact: true }).click();
   await expect
     .poll(() => page.locator('video').evaluate((v) => v.readyState), { timeout: 20000 })
     .toBeGreaterThanOrEqual(1);

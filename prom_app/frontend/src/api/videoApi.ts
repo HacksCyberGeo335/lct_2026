@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { request, readJson } from './http';
+import { mediaContentType } from '../shared/mediaFiles';
 export const uploadDto = z.object({
   uuid: z.string().uuid(),
   upload_url: z.url().refine((s) => /^https?:\/\//.test(s)),
@@ -74,7 +75,7 @@ export function uploadVideoToStorage(
     }
     xhr.open('PUT', buildStorageObjectUrl(ticket));
     xhr.timeout = 30 * 60 * 1000;
-    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.setRequestHeader('Content-Type', mediaContentType(file));
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable && e.total) onProgress(Math.round((e.loaded / e.total) * 100));
     };
@@ -89,18 +90,6 @@ export function uploadVideoToStorage(
     signal.addEventListener('abort', abort, { once: true });
     xhr.send(file);
   });
-}
-// Backend enforces only size > 0; these are CLIENT limits, not backend policy.
-export const MAX_FILE_SIZE = 2 * 1024 ** 3;
-export function validateVideo(file: File): string | null {
-  if (!file.size) return 'Файл пустой.';
-  if (file.size > MAX_FILE_SIZE) return 'Лимит интерфейса — 2 ГБ на запись.';
-  if (
-    !/\.(mp4|webm|mov)$/i.test(file.name) ||
-    (file.type && !['video/mp4', 'video/webm', 'video/quicktime'].includes(file.type))
-  )
-    return 'Поддерживаются MP4, WebM и MOV. Воспроизведение зависит от кодека браузера.';
-  return null;
 }
 export interface UploadTransport {
   init(file: File, signal: AbortSignal): Promise<UploadTicket>;
