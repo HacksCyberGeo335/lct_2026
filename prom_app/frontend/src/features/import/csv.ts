@@ -108,7 +108,8 @@ export function validateRows(input: CsvInput, mapping: Mapping): CsvPreview {
     const messages: string[] = [];
     if (!!get('work_id') !== !!get('catalog_id'))
       messages.push('Укажите вместе work_id и catalog_id либо оставьте оба пустыми');
-    if (get('work_id') && !/^work_\d+$/.test(get('work_id'))) messages.push('ID работы: work_047');
+    if (get('work_id') && !/^(?:work_\d+|user-[a-f0-9-]{36})$/.test(get('work_id')))
+      messages.push('ID работы: work_047');
     if (row.length !== input.headers.length) messages.push('Число полей не совпадает с заголовком');
     if (!name) messages.push('Название обязательно');
     if (!dateSchema.safeParse(start).success || !dateSchema.safeParse(end).success)

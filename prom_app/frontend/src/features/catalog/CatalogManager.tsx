@@ -30,7 +30,7 @@ export function CatalogManager({ builtin }: { builtin?: Catalog }) {
       </div>
       <p>
         {custom?.name ?? 'Справочник проекта'}
-        {current && ` · ${current.cards.length} работ`}
+        {current && ` · ${current.cards.length} работ · ${current.detectors.size} классов техники`}
       </p>
       <p className="sub">
         Используйте справочник проекта, загрузите свой JSON или отредактируйте копию текущего.

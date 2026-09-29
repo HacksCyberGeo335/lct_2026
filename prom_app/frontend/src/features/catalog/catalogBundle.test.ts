@@ -21,10 +21,12 @@ it('catalog export and import preserve matching rules and a stable content ident
 });
 it('rejects broken cross references without altering the built-in catalog', async () => {
   const bundle = structuredClone(bundleOf(builtin, 'Мой справочник'));
-  const work = bundle.equipment.works.find((w) => w.required_equipment.length)!;
-  work.required_equipment[0].one_of = ['missing-equipment'];
+  const work = bundle.equipment.works.find((w) => w.conditional_required_equipment.length)!;
+  work.conditional_required_equipment[0].one_of = ['missing-equipment'];
   await expect(validateBundle(bundle)).rejects.toThrow('Несогласованный справочник');
-  expect(builtin.works.get(work.work_id)!.required_equipment[0].one_of).not.toContain('missing-equipment');
+  expect(builtin.works.get(work.work_id)!.conditional_required_equipment[0].one_of).not.toContain(
+    'missing-equipment',
+  );
 });
 
 it('new works have no inherited evidence and deleting them cleans dependencies', async () => {
@@ -40,10 +42,11 @@ it('new works have no inherited evidence and deleting them cleans dependencies',
 });
 it('changed alternatives update detector classes and no longer retain an obsolete machine', async () => {
   let bundle = structuredClone(bundleOf(builtin, 'Test'));
-  const work = bundle.equipment.works.find((w) => w.required_equipment.length)!;
+  const work = bundle.equipment.works.find((w) => w.conditional_required_equipment.length)!;
   const replacement = bundle.equipment.equipment_ontology.find((e) => e.detector_classes.length)!;
-  work.required_equipment = [{ ...work.required_equipment[0], one_of: [replacement.id] }];
+  work.required_equipment = [{ ...work.conditional_required_equipment[0], one_of: [replacement.id] }];
   work.conditional_required_equipment = [];
+  work.possible_equipment = [];
   bundle = synchronizeWork(bundle, work.work_id);
   const synced = bundle.equipment.works.find((w) => w.work_id === work.work_id)!;
   expect(synced.detector_classes.map((c) => c.class_id).sort()).toEqual(
@@ -54,8 +57,8 @@ it('changed alternatives update detector classes and no longer retain an obsolet
 });
 it('reports the work and invalid field when a requirement loses all alternatives', async () => {
   const bundle = structuredClone(bundleOf(builtin, 'Test'));
-  const work = bundle.equipment.works.find((w) => w.required_equipment.length)!;
-  work.required_equipment[0].one_of = [];
+  const work = bundle.equipment.works.find((w) => w.conditional_required_equipment.length)!;
+  work.conditional_required_equipment[0].one_of = [];
   await expect(validateBundle(bundle)).rejects.toThrow(work.canonical_work_name);
   await expect(validateBundle(bundle)).rejects.toThrow('Альтернативы техники');
 });

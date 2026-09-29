@@ -108,3 +108,18 @@ test('upload window can be hidden without cancelling and a photo can be reused w
   await page.getByRole('button', { name: 'Открыть в проверке', exact: true }).click();
   await expect(page.locator('.inspection-thumb')).toHaveCount(1);
 });
+
+test('updated knowledge base exposes 94 operations and only supported equipment', async ({ page }) => {
+  await page.goto('/objects/unavailable/inspection');
+  await expect(page.getByText('Выбрать работу из справочника · 94', { exact: true })).toBeVisible();
+  await page.getByLabel('Поиск работы', { exact: true }).fill('Устройство котлована');
+  await page.getByRole('button', { name: /Устройство котлована/ }).click();
+  await expect(page.getByRole('heading', { name: 'Распознаваемая техника' })).toBeVisible();
+  await page.getByText('Признаки начала, прогресса и завершения', { exact: true }).click();
+  await expect(page.getByText('Видимое завершение', { exact: true })).toBeVisible();
+  await page.getByText('Камера и возможности модели', { exact: true }).click();
+  const context = page.locator('.catalog-context');
+  await expect(context.getByLabel('Прицеп', { exact: true })).toBeVisible();
+  await expect(context.getByLabel('Автобетононасос', { exact: true })).toBeVisible();
+  await expect(context.getByText('Буровая установка', { exact: true })).toHaveCount(0);
+});

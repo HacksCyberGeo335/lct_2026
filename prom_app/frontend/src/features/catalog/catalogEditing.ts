@@ -95,7 +95,12 @@ export function synchronizeWork(bundle: CatalogBundle, id: string): CatalogBundl
       works: bundle.equipment.works.map((w) => {
         if (w.work_id !== id) return w;
         const groups = [...w.required_equipment, ...w.conditional_required_equipment];
-        const equipment = [...new Set(groups.flatMap((g) => g.one_of))]
+        const equipment = [
+          ...new Set([
+            ...groups.flatMap((g) => g.one_of),
+            ...w.possible_equipment.map((e) => e.equipment_id),
+          ]),
+        ]
           .map((id) => bundle.equipment.equipment_ontology.find((e) => e.id === id)!)
           .filter(Boolean);
         const classes = [...new Set(equipment.flatMap((e) => e.detector_classes))];

@@ -8,28 +8,53 @@ import {
   validateProfile,
   type CatalogProfile,
 } from './catalogInspection';
-import { type InspectionFrame } from './inspection';
-import { detectorClass } from './detectorClasses';
+import { analysisResultSchema, type InspectionFrame } from './inspection';
+import { detectorClass, datasetClasses } from './detectorClasses';
 import { parseCsv, defaultMapping, validateRows } from '../features/import/csv';
 const read = (name: string) =>
   JSON.parse(readFileSync(new URL('../../public/catalog/' + name, import.meta.url), 'utf8'));
-export const catalog = parseCatalog(
-  'construction-reviewed-2026-09-18',
+// Small historical fixture exercises generic rule semantics (OR, unobservable tools,
+// aggregate rows) without reintroducing those rows into the current product catalog.
+const fixture = JSON.parse(readFileSync('tests/fixtures/catalog-rules.json', 'utf8'));
+export const catalog = parseCatalog('rules-test', fixture[0], fixture[1], fixture[2]);
+const current = parseCatalog(
+  read('manifest.json').id,
   read('construction_work_cards.json'),
   read('construction_work_equipment.json'),
   read('construction_work_duration_review.json'),
 );
-describe('reviewed catalog', () => {
-  it('loads the complete, internally consistent delivery', () => {
-    expect(catalog.cards).toHaveLength(377);
-    expect(catalog.equipmentById.size).toBe(127);
-    expect(catalog.detectors.size).toBe(18);
-    expect([...catalog.works.values()].every((w) => !w.cctv.automatic_absence_alert_enabled)).toBe(true);
+describe('updated knowledge base', () => {
+  it('contains exactly the filtered workbook delivery and no unsupported machines', () => {
+    expect(current.cards).toHaveLength(94);
+    expect(current.equipmentById.size).toBe(10);
+    expect(current.detectors.size).toBe(10);
+    expect(current.cards.every((c) => c.row_kind === 'ITEM' && !!c.visual_criteria)).toBe(true);
+    expect(current.works.has('work_068')).toBe(false);
+    expect([...current.works.values()].flatMap((w) => w.required_equipment)).toHaveLength(0);
+    expect([...current.works.values()].flatMap((w) => w.conditional_required_equipment)).toHaveLength(31);
+    expect([...current.works.values()].flatMap((w) => w.possible_equipment)).toHaveLength(145);
+    expect([...current.works.values()].every((w) => !w.cctv.automatic_absence_alert_enabled)).toBe(true);
+  });
+  it('maps dataset IDs 0 through 9 without conflating trucks, trailers or pumps', () => {
+    datasetClasses.forEach((id, index) => expect(detectorClass(String(index))).toBe(id));
+    expect(detectorClass('10')).toBe('10');
+  });
+  it('does not turn possible haulage into a mandatory requirement', () => {
+    const work = current.works.get('work_019')!;
+    expect(work.conditional_required_equipment).toHaveLength(1);
+    expect(work.possible_equipment.some((e) => e.equipment_id === 'dump_truck')).toBe(true);
   });
 });
 
 const demo = JSON.parse(readFileSync('tests/fixtures/inspection/manifest.json', 'utf8'));
 const frame = (): InspectionFrame => structuredClone(demo.frames[0]);
+it('accepts numeric dataset class IDs at the analysis import boundary', () => {
+  const input = structuredClone(demo.frames[0].result);
+  input.detections[0].class_id = 0;
+  const parsed = analysisResultSchema.parse(input);
+  expect(parsed.detections[0].class_id).toBe('0');
+  expect(detectorClass(parsed.detections[0].class_id)).toBe('excavator');
+});
 function profile(workId = 'work_047'): CatalogProfile {
   const groups = allRequirements(catalog, workId);
   return {
@@ -198,9 +223,12 @@ describe('catalog observations', () => {
     const bad = parseCsv(text.replaceAll(catalog.id, ''));
     expect(validateRows(bad, defaultMapping(bad.headers)).errors).toHaveLength(2);
   });
-  it('retains source units and missing duration rather than assigning zero', () => {
-    expect([...catalog.durationWorks.values()].filter((w) => !w.benchmarks.length)).toHaveLength(243);
-    expect(new Set([...catalog.benchmarks.values()].map((b) => b.unit)).size).toBeGreaterThan(1);
-    expect([...catalog.durationWorks.values()].every((w) => w.verified_population_mean === null)).toBe(true);
+  it('does not invent project duration from reference examples', () => {
+    expect([...current.durationWorks.values()]).toHaveLength(94);
+    expect(
+      [...current.durationWorks.values()].every(
+        (w) => w.verified_population_mean === null && !!w.missing_inputs,
+      ),
+    ).toBe(true);
   });
 });

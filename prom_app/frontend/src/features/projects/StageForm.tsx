@@ -1,7 +1,7 @@
 import { useCatalog } from '../../api/catalog';
 import { useOptionalCatalogChoice } from '../catalog/CatalogProvider';
 import { useState } from 'react';
-import { classes, type EquipmentClass, type Stage } from '../../domain/models';
+import { selectableEquipmentClasses, type EquipmentClass, type Stage } from '../../domain/models';
 import { resourcesOf } from '../../domain/plan';
 import { defaultMapping, validateRows } from '../import/csv';
 import { stageBranch } from './model';
@@ -155,7 +155,7 @@ export function StageForm({
                   )
                 }
               >
-                {Object.entries(classes).map(([key, item]) => (
+                {selectableEquipmentClasses.map(([key, item]) => (
                   <option key={key} value={key}>
                     {item.label}
                   </option>
@@ -192,13 +192,14 @@ export function StageForm({
         <button
           className="btn btn-quiet"
           type="button"
-          disabled={resources.length >= 9}
+          disabled={resources.length >= selectableEquipmentClasses.length}
           onClick={() =>
             setResources([
               ...resources,
               {
-                equipment: (Object.keys(classes).find((key) => !resources.some((r) => r.equipment === key)) ??
-                  'exc') as EquipmentClass,
+                equipment: (selectableEquipmentClasses
+                  .map(([id]) => id)
+                  .find((key) => !resources.some((r) => r.equipment === key)) ?? 'exc') as EquipmentClass,
                 quantity: '1',
               },
             ])

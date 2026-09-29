@@ -1,24 +1,26 @@
 {
   "version": 1,
-  "id": "construction-reviewed-2026-09-18",
-  "reviewed_on": "2026-09-18",
+  "id": "construction-cv-c61a75e851da",
+  "reviewed_on": "2026-09-27",
+  "source_file": "База знаний.xlsx",
+  "source_sha256": "c61a75e851da55b5b5bf46de60635ece2c209427196836b17a6808f4e8f30397",
   "files": {
     "cards": {
       "file": "construction_work_cards.json",
-      "sha256": "8c31bc2a4987d966a0f38a0652069645ef2feeaf27961146f577742eef946b71",
-      "bytes": 2363700,
+      "sha256": "61ae7ced2660ad63e1fbf520a048bc9083638472a0a985714cb8f031c88cce85",
+      "bytes": 233576,
       "schema_version": "3.1-reviewed"
     },
     "equipment": {
       "file": "construction_work_equipment.json",
-      "sha256": "1a8b0f5b23d62d8003955c955bfc20a4efbf97c20c86128e78fc8f47d604fb44",
-      "bytes": 2298132,
+      "sha256": "48f17fe74ac750dc50e19c5a9e0680c7908f3613ad72f4bf83962ee3900ca796",
+      "bytes": 304211,
       "schema_version": "1.1"
     },
     "durations": {
       "file": "construction_work_duration_review.json",
-      "sha256": "f7269a8b6259e5351520efedec0d8fd63bf9012202f4e05f2b9f00de31e3ce0d",
-      "bytes": 519503,
+      "sha256": "5bf711814ad6b953b7430de41b1c8c48861fcfcf07ee6f2427e8c4723e3f858f",
+      "bytes": 47738,
       "schema_version": "1.0"
     }
   }

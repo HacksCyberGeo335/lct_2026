@@ -1,0 +1,4153 @@
+[
+  {
+    "schema_version": "3.1-reviewed",
+    "source": {
+      "file": "rnd/store/data_src/7.ДГП_датасеты/Сводный перечень строительных работ_ЛТЦ.xlsx",
+      "sha256": "82beeb771b5d24bd3fc7323a34f35808dce0c3f396498303a3dd9b9d7f860e3a",
+      "sheet": "Лист1",
+      "name_column": "B",
+      "first_data_row": 4,
+      "last_data_row": 380,
+      "card_count": 3
+    },
+    "annotation_policy": {
+      "basis": "EXPERT_INFERENCE",
+      "source_content": "Исходная таблица содержит названия работ и отметки применимости к видам объектов. Технологии, техника, видимость и зависимости в ней не заданы; соответствующие поля являются экспертной разметкой названий и контекста, а не извлеченными проектными фактами.",
+      "coverage": "Одна карточка на каждую непустую строку B4:B380. Повторы названий и агрегирующие разделы сохранены. work_name сохранено без исправлений, включая пробелы и опечатки.",
+      "source_context": "source.context передает положение строки в разделах исходного перечня. Оно не является технологической последовательностью; отдельные строки в исходнике могут находиться в нетипичных разделах.",
+      "identifiers": "work_NNN использует номер строки Excel. Столбец A не используется для идентификаторов или календарных дат: часть кодов Excel хранит как числа с форматом даты.",
+      "macro_stage": "Категория технологического процесса; перечисление категорий не задает порядок выполнения. Для нетипично расположенных строк этап определяется по содержанию работы.",
+      "external_camera_observability": {
+        "range": [
+          0,
+          1
+        ],
+        "score_type": "HEURISTIC_NOT_CALIBRATED_PROBABILITY",
+        "camera_assumption": "Обычная наружная обзорная камера с последовательностью кадров, без входа в помещения, тоннели и без специального приближения. Оценка предполагает попадание соответствующего фасада или участка в кадр; для скрытой крыши, глубокого котлована и перекрытых зон фактическая видимость ниже.",
+        "meaning": "Оценка возможности распознать процесс или его непосредственный видимый результат. Это не вероятность фактического выполнения, доля готовности или уверенность распознающей модели.",
+        "anchors": {
+          "0": "Нет обоснованных прямых признаков для такого наружного наблюдения.",
+          "1": "Прямо и однозначно видно в принятом сценарии.",
+          "0.25": "Слабо различимо; нужен удачный ракурс или достаточное разрешение.",
+          "0.5": "Часть процесса видна, но признаки неспецифичны или значительная часть скрыта.",
+          "0.75": "Обычно различимы характерные действия при открытом обзоре."
+        },
+        "unknown_technology": "При неизвестной технологии и отсутствии обоснованного визуального правила используется консервативный 0 с пояснением; это не утверждение о физической невидимости при любом ракурсе."
+      },
+      "equipment": {
+        "scope": "Строительные машины, механизированные инструменты, измерительное и технологическое оборудование. Материалы, опалубка, леса, СИЗ и полный ручной инструмент не перечисляются; устанавливаемое оборудование не подменяет средства его монтажа.",
+        "required_equipment": "Совместимое поле: названия обязательных функциональных классов. Состав и фаза — в equipment_requirements. UNKNOWN — метод не установлен; [] — универсальный комплект не назначен.",
+        "optional_equipment": "Совместимое поле: кандидаты, включая альтернативы обязательных функциональных классов. Условия и происхождение — в equipment_relations.",
+        "required_groups": "Между применимыми группами AND; внутри one_of OR. Один комплект может реализовать несколько функций. Это перечень функций, не количество машин.",
+        "conditional": "CONDITIONAL становится требованием только после подтверждения всех полей when и начала указанной фазы. Отсутствующее поле означает UNKNOWN, не True.",
+        "evidence": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE — вывод из указанного технического источника. EXPERT_INFERENCE и SOURCE_JSON_EXPERT_INFERENCE — экспертные предположения. Нормативный статус и комплект по ППР этим не утверждаются.",
+        "manual_scope": "Ручная трамбовка включена как явная альтернатива для малых доступных участков грунта; крупная машина из этого не следует.",
+        "closed_world": false
+      },
+      "positive_visual_signs": "Только наблюдаемые действия или непосредственные результаты с оговоренными условиями видимости. [] — надежные прямые признаки для наружной камеры не сформулированы. Наличие машины или доставка материала сами по себе не подтверждают выполнение. Отсутствие признака не доказывает отсутствие работы. Цвет и фактура не подтверждают марку материала.",
+      "dependencies": {
+        "unknown": "UNKNOWN означает, что обоснованная связь с конкретной строкой перечня не установлена, а не отсутствие предшественников или последующих работ.",
+        "reference": "predecessor и successor содержат ссылки work_id на карточки этого файла; каждая связь содержит условие ее применения.",
+        "scope": "Связи относятся к тому же элементу, партии оборудования или участку и требуют выполнения указанного condition. Это необходимые локальные предпосылки; не обязательно завершение всей строки целиком на всем объекте.",
+        "completeness": "Граф неполный. Он не включает не перечисленные в исходнике проверки, согласования и промежуточные операции. Наличие нескольких альтернативных или дублирующих строк не требует выполнения всех на одном объекте.",
+        "ordering": "Порядок строк Excel и принадлежность к агрегирующему разделу не создают зависимостей. При неочевидном порядке, неизвестной конструкции или отсутствии однозначного соответствия используется UNKNOWN."
+      },
+      "calendar": "Календарные даты, длительности и интервалы ожидания не назначены.",
+      "external_references": "reference_ids указывают справочные первоисточники только для общих технологических принципов и отмеченных типов оборудования. Они не подтверждают численные оценки наблюдаемости, конкретную конструкцию объекта или весь состав отдельной карточки.",
+      "applicability": "Отметки C–K перенесены дословно. Пустая ячейка — UNMARKED, не доказательство технической невозможности применения.",
+      "cctv_rules": {
+        "required_context": [
+          "site_id",
+          "zone_id",
+          "planned_work_id",
+          "active_operation",
+          "selected_method",
+          "camera_coverage",
+          "equipment_visibility",
+          "observation_window",
+          "detector_validation"
+        ],
+        "missing_equipment": "Только риск: применимая группа не наблюдалась в зоне активной операции за настроенное окно при достаточном обзоре всех допустимых альтернатив. Один снимок недостаточен.",
+        "unexpected_equipment": "Кандидат на проверку после учета всех параллельных работ, соседних зон, доставки и транзита. Отсутствие в possible_equipment само по себе не аномалия.",
+        "aggregate": "Общие разделы не запускают тревоги; выберите конкретную операцию.",
+        "detector_classes": "Подсказки для будущей модели, не перечень обученных классов. Общий класс crane/excavator не доказывает наличие нужного навесного оборудования, грузоподъемности или функции.",
+        "time_thresholds": "Не назначены: требуются сменный график, метод и локальная калибровка.",
+        "counts": "Количество машин, даты и производительность отсутствуют в исходнике и не выводятся из наличия оборудования."
+      }
+    },
+    "macro_stage_definitions": {
+      "SITE_PREPARATION": "Подготовка и обустройство строительной площадки",
+      "UTILITY_RELOCATION": "Вынос существующих инженерных коммуникаций",
+      "DEMOLITION": "Снос и демонтаж",
+      "PROCUREMENT_AND_LOGISTICS": "Закупки, поставки и передача оснащения",
+      "COMMISSIONING_AND_INTEGRATION": "Интеграция и испытания",
+      "CONSTRUCTION_GENERAL": "Строительно-монтажные работы в целом",
+      "TUNNEL_CONSTRUCTION": "Строительство тоннелей",
+      "SUBSTRUCTURE": "Несущие конструкции подземной части",
+      "EARTHWORKS": "Земляные работы и вертикальная планировка",
+      "FOUNDATIONS": "Основания и фундаменты",
+      "EXCAVATION_SUPPORT": "Ограждение и крепление выемок",
+      "GROUND_IMPROVEMENT": "Закрепление и улучшение грунтов",
+      "ROAD_BASE": "Основания дорожной одежды",
+      "WATERPROOFING": "Гидроизоляция и связанные защитные слои",
+      "SUPERSTRUCTURE": "Несущие конструкции надземной части",
+      "EQUIPMENT_INSTALLATION": "Монтаж технологического оборудования и транспорта",
+      "STRUCTURAL_SUPPORTS": "Возведение опор",
+      "PROTECTIVE_COATINGS": "Защитные покрытия конструкций",
+      "BRIDGE_STRUCTURES": "Пролетные строения и мостовое полотно",
+      "ROOFING": "Несущие и изолирующие конструкции кровли",
+      "WALLS_AND_PARTITIONS": "Стены и перегородки",
+      "FACADE": "Фасад, наружное остекление и входные элементы",
+      "INTERIOR_FINISHING": "Внутренняя отделка и заполнение внутренних проемов",
+      "ROAD_PAVING": "Дорожные покрытия и бортовой камень",
+      "ROAD_FURNISHINGS": "Обустройство дорог и организация движения",
+      "RAIL_TRACK": "Верхнее строение рельсового пути",
+      "RETAINING_AND_PROTECTIVE_STRUCTURES": "Подпорные и защитные стены",
+      "FIRE_PROTECTION": "Противопожарные мероприятия",
+      "UNKNOWN": "Этап нельзя обоснованно определить из названия и контекста",
+      "EXTERNAL_UTILITIES": "Наружные инженерные сети",
+      "EXTERIOR_FINISHING": "Наружные отделочные работы",
+      "ENGINEERING_SYSTEMS": "Инженерные системы смешанного или неуточненного размещения",
+      "INTERNAL_UTILITIES": "Внутренние инженерные системы",
+      "FINISHING_GENERAL": "Отделочные работы в целом",
+      "INTERIOR_FITOUT": "Оснащение помещений мебелью, приборами и инвентарем",
+      "LANDSCAPING": "Благоустройство и озеленение территории",
+      "THERMAL_INSULATION": "Теплоизоляция без уточнения положения стены"
+    },
+    "references": [
+      {
+        "id": "bauer_piles",
+        "title": "BAUER: Piles",
+        "url": "https://geotechnical-solutions.bauer.de/en/piles",
+        "supports": "Буровые установки и различия технологий буронабивных свай; последовательность армирования и бетонирования зависит от метода.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      },
+      {
+        "id": "herrenknecht_tbm",
+        "title": "Herrenknecht: Double Shield TBM",
+        "url": "https://www.herrenknecht.com/en/products/productdetail/double-shield-tbm/",
+        "supports": "ТПМК и механизм установки сегментов обделки; проходка и монтаж обделки возможны параллельно.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      },
+      {
+        "id": "wirtgen_earthworks",
+        "title": "Wirtgen Group: Applications",
+        "url": "https://www.wirtgen-group.com/en-us/applications/",
+        "supports": "Планировка, устройство оснований, укладка и уплотнение дорожных слоев.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      },
+      {
+        "id": "technonicol_invers",
+        "title": "ТЕХНОНИКОЛЬ: ТН-КРОВЛЯ ИНВЕРС",
+        "url": "https://technonicol.com/ru-kz/systems/ploskaya-krysha/tn-krovlya-invers/",
+        "supports": "Существуют разные конструкции кровель; универсальный порядок гидроизоляции и утепления не задается.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      },
+      {
+        "id": "bauer_micropiles",
+        "title": "BAUER: Micro piles",
+        "url": "https://geotechnical-solutions.bauer.de/en/micro-piles",
+        "supports": "Бурение микросвай, цементное заполнение и инъекции; конкретная технология выбирается по проекту.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      },
+      {
+        "id": "technonicol_injection",
+        "title": "ТЕХНОНИКОЛЬ: Руководство по применению инъекционных материалов",
+        "url": "https://technonicol.com/upload/iblock/36d/0klz9nxpafo2etaxpfg2ked2eq2ct6jx/Rukovodstvo-inektsii_2_web_1.pdf",
+        "supports": "Инъекционная герметизация выполняется с насосом и пакерами.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      },
+      {
+        "id": "peri_concrete",
+        "title": "PERI: Components",
+        "url": "https://www.peri.com/en/competences/components.html",
+        "supports": "Типовые операции монолитных работ: опалубка, арматура, бетонирование, распалубка и последующий уход.",
+        "review_status": "LEGACY_CONTEXT_REFERENCE_NOT_EVIDENCE_FOR_ALL_EQUIPMENT"
+      }
+    ],
+    "cards": [
+      {
+        "id": "work_004",
+        "source": {
+          "sheet": "Лист1",
+          "row": 4,
+          "cell": "B4",
+          "context": [
+            "Подготовка территории"
+          ],
+          "applicability_marks": {
+            "Жильё": "˅",
+            "Образование": "˅",
+            "Здравоохранение": "˅",
+            "Спорт": "˅",
+            "Культура": "˅",
+            "Административные здания": "˅",
+            "ДОУ": "˅",
+            "Офисно-деловой центр": "˅",
+            "Дороги": "˅"
+          }
+        },
+        "work_name": "Подготовка территории",
+        "macro_stage": "SITE_PREPARATION",
+        "external_camera_observability": 0.85,
+        "required_equipment": "UNKNOWN",
+        "optional_equipment": [
+          "Самосвал",
+          "Экскаватор",
+          "Погрузчик"
+        ],
+        "positive_visual_signs": [
+          "Последовательное освобождение участков от сооружений и растительности",
+          "Появление ограждения и временных сооружений"
+        ],
+        "observability_note": "Сводный раздел; конкретная операция определяется по дочерним строкам.",
+        "predecessor": "UNKNOWN",
+        "successor": "UNKNOWN",
+        "reference_ids": [],
+        "row_kind": "AGGREGATE",
+        "canonical_work_name": "Подготовка территории",
+        "applicable_object_types": [
+          "Жильё",
+          "Образование",
+          "Здравоохранение",
+          "Спорт",
+          "Культура",
+          "Административные здания",
+          "ДОУ",
+          "Офисно-деловой центр",
+          "Дороги"
+        ],
+        "source_match_status": "EXACT",
+        "equipment_requirements": [],
+        "equipment_relations": [
+          {
+            "equipment_id": "DUMP_TRUCK",
+            "equipment_name": "Самосвал",
+            "equipment_name_ru": "Самосвал",
+            "equipment_name_en": "Dump truck",
+            "relation": "MAY_USE",
+            "condition": "Автомобильная доставка или вывоз сыпучего материала; при складировании на участке или другом транспорте может не применяться.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Самосвал"
+          },
+          {
+            "equipment_id": "EXCAVATOR",
+            "equipment_name": "Экскаватор",
+            "equipment_name_ru": "Экскаватор",
+            "equipment_name_en": "Excavator",
+            "relation": "MAY_USE",
+            "condition": "Открытая механизированная разработка или перемещение грунта; не распространяется на закрытый монтаж и все бестраншейные методы.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Экскаватор"
+          },
+          {
+            "equipment_id": "LOADER",
+            "equipment_name": "Погрузчик",
+            "equipment_name_ru": "Погрузчик",
+            "equipment_name_en": "Loader",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Погрузчик"
+          }
+        ],
+        "equipment_requirement_status": "AGGREGATE_SELECT_OPERATION",
+        "equipment_review": {
+          "reviewed_on": "2026-09-18",
+          "notes": [
+            "Сводный раздел: список возможных средств справочный; требования активируются на уровне выбранной операции."
+          ],
+          "possible_list_exhaustive": false,
+          "source_ids": []
+        },
+        "cctv_equipment_monitoring": {
+          "requires_project_configuration": true,
+          "automatic_absence_alert_enabled": false,
+          "reason": "Сводный раздел либо нет надежного наблюдения операции наружной камерой; автоматическая проверка отсутствия не назначается.",
+          "candidate_detector_classes": [
+            "dump_truck",
+            "excavator",
+            "loader"
+          ],
+          "external_view_limitation": "Сводный раздел; конкретная операция определяется по дочерним строкам."
+        }
+      },
+      {
+        "id": "work_047",
+        "source": {
+          "sheet": "Лист1",
+          "row": 47,
+          "cell": "B47",
+          "context": [
+            "Устройство подземной части"
+          ],
+          "applicability_marks": {
+            "Жильё": "˅",
+            "Образование": "˅",
+            "Здравоохранение": "˅",
+            "Спорт": "˅",
+            "Культура": "˅",
+            "Административные здания": "˅",
+            "ДОУ": "˅",
+            "Офисно-деловой центр": "˅",
+            "Дороги": "˅"
+          }
+        },
+        "work_name": "Устройство котлована",
+        "macro_stage": "EARTHWORKS",
+        "external_camera_observability": 0.9,
+        "required_equipment": "UNKNOWN",
+        "optional_equipment": [
+          "Бульдозер",
+          "Водоотливной насос",
+          "Самосвал",
+          "Экскаватор",
+          "Мини-экскаватор"
+        ],
+        "positive_visual_signs": [
+          "Выемка грунта рабочим органом или вручную",
+          "Понижение отметки поверхности и вывоз вынутого грунта"
+        ],
+        "observability_note": "Наблюдение требует обзора зоны разработки.",
+        "predecessor": "UNKNOWN",
+        "successor": "UNKNOWN",
+        "reference_ids": [],
+        "row_kind": "ITEM",
+        "canonical_work_name": "Устройство котлована",
+        "applicable_object_types": [
+          "Жильё",
+          "Образование",
+          "Здравоохранение",
+          "Спорт",
+          "Культура",
+          "Административные здания",
+          "ДОУ",
+          "Офисно-деловой центр",
+          "Дороги"
+        ],
+        "source_match_status": "EXACT",
+        "equipment_requirements": [
+          {
+            "requirement_id": "work_047_r01",
+            "relation": "CONDITIONAL",
+            "functional_equipment_id": "EXCAVATOR",
+            "equipment_name": "Экскаватор",
+            "equipment_name_ru": "Экскаватор",
+            "equipment_name_en": "Excavator",
+            "one_of": [
+              "EXCAVATOR",
+              "MINI_EXCAVATOR"
+            ],
+            "phase": "Разработка и погрузка грунта",
+            "when": {
+              "excavation_method": "excavator"
+            },
+            "condition": "При экскаваторной схеме разработки грунта.",
+            "rationale": "Функциональная потребность выводится из названной операции; конкретный комплект выбирают по технологии.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "alternatives_exhaustive": false,
+            "evidence_scope": "FUNCTIONAL_PRINCIPLE; option evidence is in equipment_relations",
+            "alternative_selection": "REQUIRES_PROJECT_VALIDATION"
+          },
+          {
+            "requirement_id": "work_047_r02",
+            "relation": "CONDITIONAL",
+            "functional_equipment_id": "DUMP_TRUCK",
+            "equipment_name": "Самосвал",
+            "equipment_name_ru": "Самосвал",
+            "equipment_name_en": "Dump truck",
+            "one_of": [
+              "DUMP_TRUCK"
+            ],
+            "phase": "Вывоз грунта",
+            "when": {
+              "soil_transport": "dump_truck_haulage"
+            },
+            "condition": "При вывозе грунта самосвалами; окно наблюдения учитывает оборот транспорта.",
+            "rationale": "Функциональная потребность выводится из названной операции; конкретный комплект выбирают по технологии.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "alternatives_exhaustive": false,
+            "evidence_scope": "FUNCTIONAL_PRINCIPLE; option evidence is in equipment_relations",
+            "alternative_selection": "REQUIRES_PROJECT_VALIDATION"
+          }
+        ],
+        "equipment_relations": [
+          {
+            "equipment_id": "BULLDOZER",
+            "equipment_name": "Бульдозер",
+            "equipment_name_ru": "Бульдозер",
+            "equipment_name_en": "Bulldozer",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Бульдозер"
+          },
+          {
+            "equipment_id": "DEWATERING_PUMP",
+            "equipment_name": "Водоотливной насос",
+            "equipment_name_ru": "Водоотливной насос",
+            "equipment_name_en": "Dewatering pump",
+            "relation": "MAY_USE",
+            "condition": "При притоке воды и принятом открытом водоотливе; насос может быть вне обзора камеры.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Водоотливной насос"
+          },
+          {
+            "equipment_id": "DUMP_TRUCK",
+            "equipment_name": "Самосвал",
+            "equipment_name_ru": "Самосвал",
+            "equipment_name_en": "Dump truck",
+            "relation": "MAY_USE",
+            "condition": "Автомобильная доставка или вывоз сыпучего материала; при складировании на участке или другом транспорте может не применяться. Либо: При вывозе грунта самосвалами; окно наблюдения учитывает оборот транспорта.",
+            "evidence_level": "MIXED_REFERENCE_AND_EXPERT_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "source_equipment_text": "Самосвал"
+          },
+          {
+            "equipment_id": "EXCAVATOR",
+            "equipment_name": "Экскаватор",
+            "equipment_name_ru": "Экскаватор",
+            "equipment_name_en": "Excavator",
+            "relation": "MAY_USE",
+            "condition": "Открытая механизированная разработка или перемещение грунта; не распространяется на закрытый монтаж и все бестраншейные методы. Либо: При экскаваторной схеме разработки грунта.",
+            "evidence_level": "MIXED_REFERENCE_AND_EXPERT_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "source_equipment_text": "Экскаватор"
+          },
+          {
+            "equipment_id": "MINI_EXCAVATOR",
+            "equipment_name": "Мини-экскаватор",
+            "equipment_name_ru": "Мини-экскаватор",
+            "equipment_name_en": "Mini excavator",
+            "relation": "MAY_USE",
+            "condition": "При экскаваторной схеме разработки грунта.",
+            "evidence_level": "EXPERT_INFERENCE",
+            "source_ids": []
+          }
+        ],
+        "equipment_requirement_status": "CONDITIONAL_ON_METHOD",
+        "equipment_review": {
+          "reviewed_on": "2026-09-18",
+          "notes": [
+            "Требования ограничены указанной технологией и активной фазой; наличие техники не доказывает выполнение всей строки."
+          ],
+          "possible_list_exhaustive": false,
+          "source_ids": [
+            "earthmoving"
+          ]
+        },
+        "cctv_equipment_monitoring": {
+          "requires_project_configuration": true,
+          "automatic_absence_alert_enabled": false,
+          "reason": "Требуются метод, активная фаза, зона, интервал наблюдения и проверка видимости всех альтернатив.",
+          "candidate_detector_classes": [
+            "bulldozer",
+            "dump_truck",
+            "excavator"
+          ],
+          "external_view_limitation": "Наблюдение требует обзора зоны разработки."
+        }
+      },
+      {
+        "id": "work_068",
+        "source": {
+          "sheet": "Лист1",
+          "row": 68,
+          "cell": "B68",
+          "context": [
+            "Устройство подземной части",
+            "Земляные работы"
+          ],
+          "applicability_marks": {
+            "Жильё": "",
+            "Образование": "˅",
+            "Здравоохранение": "˅",
+            "Спорт": "˅",
+            "Культура": "˅",
+            "Административные здания": "˅",
+            "ДОУ": "˅",
+            "Офисно-деловой центр": "˅",
+            "Дороги": "˅"
+          }
+        },
+        "work_name": "Уплотнение грунта",
+        "macro_stage": "EARTHWORKS",
+        "external_camera_observability": 0.8,
+        "required_equipment": [
+          "Оборудование уплотнения грунта или основания"
+        ],
+        "optional_equipment": [
+          "Ручная трамбовка",
+          "Виброплита",
+          "Каток",
+          "Грунтовый каток",
+          "Вибротрамбовка"
+        ],
+        "positive_visual_signs": [
+          "Повторные проходы уплотняющего оборудования по одному слою",
+          "Работа трамбовки на ограниченном участке"
+        ],
+        "observability_note": "Ручная трамбовка возможна на малых участках; достигнутая плотность не видна.",
+        "predecessor": "UNKNOWN",
+        "successor": "UNKNOWN",
+        "reference_ids": [
+          "wirtgen_earthworks"
+        ],
+        "row_kind": "ITEM",
+        "canonical_work_name": "Уплотнение грунта",
+        "applicable_object_types": [
+          "Образование",
+          "Здравоохранение",
+          "Спорт",
+          "Культура",
+          "Административные здания",
+          "ДОУ",
+          "Офисно-деловой центр",
+          "Дороги"
+        ],
+        "source_match_status": "EXACT",
+        "equipment_requirements": [
+          {
+            "requirement_id": "work_068_r01",
+            "relation": "REQUIRES",
+            "functional_equipment_id": "SOIL_COMPACTION_EQUIPMENT",
+            "equipment_name": "Оборудование уплотнения грунта или основания",
+            "equipment_name_ru": "Оборудование уплотнения грунта или основания",
+            "equipment_name_en": "Soil or base course compaction equipment",
+            "one_of": [
+              "SOIL_ROLLER",
+              "ROAD_ROLLER",
+              "PLATE_COMPACTOR",
+              "VIBRATORY_RAMMER",
+              "MANUAL_TAMPER"
+            ],
+            "phase": "Уплотнение слоя",
+            "when": {},
+            "condition": "При выполнении указанной операции на данном участке.",
+            "rationale": "Необходима функция уплотнения. Выбор механизма зависит от материала, толщины слоя и доступа; ручная трамбовка для малых участков — экспертная альтернатива, не утверждение источника.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "soil_compaction"
+            ],
+            "alternatives_exhaustive": false,
+            "evidence_scope": "FUNCTIONAL_PRINCIPLE; option evidence is in equipment_relations",
+            "alternative_selection": "REQUIRES_PROJECT_VALIDATION"
+          }
+        ],
+        "equipment_relations": [
+          {
+            "equipment_id": "MANUAL_TAMPER",
+            "equipment_name": "Ручная трамбовка",
+            "equipment_name_ru": "Ручная трамбовка",
+            "equipment_name_en": "Hand tamper",
+            "relation": "MAY_USE",
+            "condition": "При выполнении указанной операции на данном участке.",
+            "evidence_level": "EXPERT_INFERENCE",
+            "source_ids": []
+          },
+          {
+            "equipment_id": "PLATE_COMPACTOR",
+            "equipment_name": "Виброплита",
+            "equipment_name_ru": "Виброплита",
+            "equipment_name_en": "Vibratory plate compactor",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода. Либо: При выполнении указанной операции на данном участке.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Виброплита"
+          },
+          {
+            "equipment_id": "ROAD_ROLLER",
+            "equipment_name": "Каток",
+            "equipment_name_ru": "Каток",
+            "equipment_name_en": "Road roller",
+            "relation": "MAY_USE",
+            "condition": "При выполнении указанной операции на данном участке.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "soil_compaction"
+            ]
+          },
+          {
+            "equipment_id": "SOIL_ROLLER",
+            "equipment_name": "Грунтовый каток",
+            "equipment_name_ru": "Грунтовый каток",
+            "equipment_name_en": "Soil compaction roller",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода. Либо: При выполнении указанной операции на данном участке.",
+            "evidence_level": "MIXED_REFERENCE_AND_EXPERT_INFERENCE",
+            "source_ids": [
+              "soil_compaction"
+            ],
+            "source_equipment_text": "Грунтовый каток"
+          },
+          {
+            "equipment_id": "VIBRATORY_RAMMER",
+            "equipment_name": "Вибротрамбовка",
+            "equipment_name_ru": "Вибротрамбовка",
+            "equipment_name_en": "Vibratory rammer",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода. Либо: При выполнении указанной операции на данном участке.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Вибротрамбовка"
+          }
+        ],
+        "equipment_requirement_status": "FUNCTIONAL_REQUIREMENT_IDENTIFIED",
+        "equipment_review": {
+          "reviewed_on": "2026-09-18",
+          "notes": [
+            "Требования ограничены указанной технологией и активной фазой; наличие техники не доказывает выполнение всей строки."
+          ],
+          "possible_list_exhaustive": false,
+          "source_ids": [
+            "soil_compaction"
+          ]
+        },
+        "cctv_equipment_monitoring": {
+          "requires_project_configuration": true,
+          "automatic_absence_alert_enabled": false,
+          "reason": "Требуются метод, активная фаза, зона, интервал наблюдения и проверка видимости всех альтернатив.",
+          "candidate_detector_classes": [
+            "roller"
+          ],
+          "external_view_limitation": "Ручная трамбовка возможна на малых участках; достигнутая плотность не видна."
+        }
+      }
+    ],
+    "review_sources": [
+      {
+        "id": "sheet_piles",
+        "title": "ArcelorMittal: Installation equipment",
+        "url": "https://sheetpiling.arcelormittal.com/installation-equipment",
+        "supports": "Погружение шпунта: вибрация, удар или гидравлическое вдавливание; выбор зависит от грунта.",
+        "locator": "Standard installation techniques",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "bored_piles",
+        "title": "BAUER: Piles",
+        "url": "https://geotechnical-solutions.bauer.de/en/piles",
+        "supports": "Kelly и CFA — буровые методы устройства свай; насосная подача зависит от метода.",
+        "locator": "Kelly pile; Continuous Flight Auger pile",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "micropiles",
+        "title": "Keller: Micropiles",
+        "url": "https://www.keller.com/expertise/techniques/micropiles",
+        "supports": "Микросваи выполняют бурением с армированием и заполнением цементным раствором.",
+        "locator": "Process",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "diaphragm",
+        "title": "BAUER: Diaphragm walls",
+        "url": "https://geotechnical-solutions.bauer.de/en/diaphragm-walls",
+        "supports": "Траншею стены в грунте разрабатывают грейфером или фрезой под защитным раствором.",
+        "locator": "Diaphragm wall grab / cutter excavated",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "grouting",
+        "title": "BAUER: Injections",
+        "url": "https://geotechnical-solutions.bauer.de/en/grouting",
+        "supports": "Закрепление инъекциями и струйная цементация — отдельные технологии укрепления грунта.",
+        "locator": "Compaction grouting; Jet grouting",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "tbm",
+        "title": "Herrenknecht: Double Shield TBM",
+        "url": "https://www.herrenknecht.com/en/products/productdetail/double-shield-tbm/",
+        "supports": "Щит оснащён режущей головкой, транспортом грунта и эректором сегментов.",
+        "locator": "Machine belt; Erector",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "SEARCH_INDEX_EXCERPT"
+      },
+      {
+        "id": "hdd",
+        "title": "Vermeer: Horizontal Directional Drills",
+        "url": "https://www.vermeer.com/na/directional-drills",
+        "supports": "ГНБ — способ бестраншейной прокладки коммуникаций.",
+        "locator": "Horizontal directional drills",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "earthmoving",
+        "title": "Caterpillar: Step Up Your Truck Loading Game",
+        "url": "https://www.cat.com/en_GB/articles/ci-articles/how-to-load-your-truck-efficiently.html",
+        "supports": "Экскаватор загружает грунт в автомобиль; это конкретная схема перемещения материала.",
+        "locator": "Truck loading",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "demolition",
+        "title": "Caterpillar: Demolition excavators",
+        "url": "https://www.cat.com/en_GB/products/new/equipment/excavators/demolition-excavators.html",
+        "supports": "Демонтажные экскаваторы предназначены для механизированного разрушения конструкций.",
+        "locator": "Demolition excavators",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "soil_compaction",
+        "title": "Wirtgen: Soil compaction",
+        "url": "https://www.wirtgen-group.com/en-de/applications/earthworks/soil-compaction/",
+        "supports": "Грунтовые слои уплотняют статическим и динамическим воздействием; каток — один из механизмов.",
+        "locator": "Soil compaction",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "asphalt",
+        "title": "Wirtgen: Small machines for small construction sites",
+        "url": "https://www.wirtgen-group.com/en-ps/news/wirtgen-group/wg_pr_2025_technology_small_job_sites/",
+        "supports": "Укладчики и компактные катки применяются на небольших асфальтовых площадках и дорожках.",
+        "locator": "Small and versatile",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "mastic_asphalt",
+        "title": "IMAA: The Mastic Asphalt Industry — a European Perspective",
+        "url": "https://mastic-asphalt.eu/fileadmin/user_upload/mastic-asphalt/public/en/IMAA_global_perspective_mastic_asphalt_19_10_10.pdf",
+        "supports": "Литой асфальт не требует уплотнения смеси; это исключение для общего названия асфальтобетонного покрытия.",
+        "locator": "Description of the product; 6.4",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "concrete_vibration",
+        "title": "Wacker Neuson: Internal Vibrators",
+        "url": "https://www.wackerneuson.com/us/products/concrete-technology/internal-vibrators",
+        "supports": "Глубинные вибраторы служат для уплотнения свежего бетона.",
+        "locator": "Internal vibrators",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "scc",
+        "title": "Sika: Self Compacting Concrete",
+        "url": "https://gbr.sika.com/en/construction/concrete/concrete-technology/self-compacting-concrete.html",
+        "supports": "Самоуплотняющийся бетон укладывается без виброуплотнения.",
+        "locator": "Self Compacting Concrete",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "injection",
+        "title": "ТЕХНОНИКОЛЬ: Руководство по применению инъекционных материалов",
+        "url": "https://technonicol.com/upload/iblock/36d/0klz9nxpafo2etaxpfg2ked2eq2ct6jx/Rukovodstvo-inektsii_2_web_1.pdf",
+        "supports": "При напорном инъектировании насос подаёт состав через пакеры.",
+        "locator": "Раздел 8.4; 8.5",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "membrane",
+        "title": "ТЕХНОНИКОЛЬ: Монтаж однослойной кровли из полимерной мембраны",
+        "url": "https://nav.tn.ru/cloud/iblock/751/RF_S_PK_TN_Instruktsiya_po_montazhu_odnosloynoy_krovli_izpolimernoy_membrany.pdf",
+        "supports": "Сварные полимерные мембраны соединяют специализированным оборудованием горячего воздуха.",
+        "locator": "2.3. Оборудование горячего воздуха",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "transbarrier",
+        "title": "Москомархитектура: Распоряжение № 133 от 19.01.2022",
+        "url": "https://www.mos.ru/upload/documents/files/9443/RasporyajenieMKA133ot19012022.pdf",
+        "supports": "Трансбарьер указан как металлическое барьерное ограждение; источник не задаёт машины монтажа.",
+        "locator": "PDF страница 180, элемент 67_8",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "survey",
+        "title": "Leica: Construction Total Stations & GNSS",
+        "url": "https://leica-geosystems.com/products/construction-tps-and-gnss/icon-content-hub",
+        "supports": "Тахеометры и GNSS применяются для позиционирования и разбивки на стройплощадке.",
+        "locator": "Construction layout",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "drywall",
+        "title": "КНАУФ: Облицовка С 611",
+        "url": "https://www.knauf.ru/systems/oblitsovki/oblitsovki-gipsokarton/s-611-a/",
+        "supports": "Существуют бескаркасные облицовки на клею. Источник не подтверждает двухслойную конструкцию из строки 127.",
+        "locator": "Описание системы С 611",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "plaster",
+        "title": "КНАУФ: Как работать с Ротбанд",
+        "url": "https://www.knauf.ru/service/blog/knauf-rotband-universal-gypsum-plaster/",
+        "supports": "Раствор готовят с использованием штукатурного миксера; нанесение может быть ручным.",
+        "locator": "Инструменты и подготовка раствора",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "pipe_welding",
+        "title": "ROTHENBERGER: ROWELD Butt Welding",
+        "url": "https://rothenberger.com/us-en/products/plastic-pipe-welding/roweld-butt-welding",
+        "supports": "Для стыковой сварки полимерных труб применяется специализированная сварочная машина.",
+        "locator": "ROWELD Butt Welding",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "pipe_press",
+        "title": "ROTHENBERGER: Pressing",
+        "url": "https://us.rothenberger.com/us-en/products/installation/pressing/",
+        "supports": "Прессовые соединения выполняются пресс-инструментом соответствующего диаметра.",
+        "locator": "Pressing",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "escalators",
+        "title": "Schindler: Planning Guide for Escalators and Moving Walks",
+        "url": "https://www.schindler.co.uk/content/dam/website/uk/docs/escalators-moving-walks/schindler-escalator-planning-guide.pdf/_jcr_content/renditions/original./schindler-escalator-planning-guide.pdf",
+        "supports": "Разгрузка, перемещение и подъём эскалатора выполняются разными средствами; наружный кран не универсален.",
+        "locator": "Страница 28, Setting Down Onto the End Supports",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      }
+    ],
+    "equipment_ontology": [
+      {
+        "id": "AERATED_CONCRETE_SAW",
+        "name": "Пила для газобетона",
+        "aliases": [
+          "Пила для газобетона"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Пила для газобетона",
+        "name_en": "Aerated concrete saw"
+      },
+      {
+        "id": "AERIAL_WORK_PLATFORM",
+        "name": "Автовышка",
+        "aliases": [
+          "Автовышка",
+          "Автовышка при воздушной линии",
+          "Автовышка при воздушной прокладке"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "aerial_platform"
+        ],
+        "name_ru": "Автовышка",
+        "name_en": "Truck-mounted aerial work platform"
+      },
+      {
+        "id": "ASPHALT_COMPACTION_EQUIPMENT",
+        "name": "Оборудование для уплотнения асфальтобетона",
+        "aliases": [
+          "Оборудование для уплотнения асфальтобетона"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование для уплотнения асфальтобетона",
+        "name_en": "Asphalt compaction equipment"
+      },
+      {
+        "id": "ASPHALT_PAVER",
+        "name": "Асфальтоукладчик",
+        "aliases": [
+          "Асфальтоукладчик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "asphalt_paver"
+        ],
+        "name_ru": "Асфальтоукладчик",
+        "name_en": "Asphalt paver"
+      },
+      {
+        "id": "AUGER",
+        "name": "Бур",
+        "aliases": [
+          "Бур"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Бур",
+        "name_en": "Auger"
+      },
+      {
+        "id": "BEAM_TRANSPORTER",
+        "name": "Балковоз",
+        "aliases": [
+          "Балковоз"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Балковоз",
+        "name_en": "Beam transporter"
+      },
+      {
+        "id": "BITUMEN_SPRAYER",
+        "name": "Автогудронатор",
+        "aliases": [
+          "Автогудронатор"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Автогудронатор",
+        "name_en": "Bitumen distributor"
+      },
+      {
+        "id": "BOARD_LIFT",
+        "name": "Подъемник для листов",
+        "aliases": [
+          "Подъемник для листов"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Подъемник для листов",
+        "name_en": "Sheet material lift"
+      },
+      {
+        "id": "BULLDOZER",
+        "name": "Бульдозер",
+        "aliases": [
+          "Бульдозер"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "bulldozer"
+        ],
+        "name_ru": "Бульдозер",
+        "name_en": "Bulldozer"
+      },
+      {
+        "id": "CABLE_LAYER",
+        "name": "Кабелеукладчик",
+        "aliases": [
+          "Кабелеукладчик"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Кабелеукладчик",
+        "name_en": "Cable laying machine"
+      },
+      {
+        "id": "CABLE_WINCH",
+        "name": "Кабельная лебедка",
+        "aliases": [
+          "Кабельная лебедка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Кабельная лебедка",
+        "name_en": "Cable pulling winch"
+      },
+      {
+        "id": "CASING_EQUIPMENT",
+        "name": "Оборудование обсадки скважин",
+        "aliases": [
+          "Оборудование обсадки скважин"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование обсадки скважин",
+        "name_en": "Borehole casing equipment"
+      },
+      {
+        "id": "CHAINSAW",
+        "name": "Бензопила",
+        "aliases": [
+          "Бензопила"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Бензопила",
+        "name_en": "Chainsaw"
+      },
+      {
+        "id": "CHAIN_HOIST",
+        "name": "Таль",
+        "aliases": [
+          "Таль",
+          "Таль для тяжелого полотна"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Таль",
+        "name_en": "Chain hoist"
+      },
+      {
+        "id": "COATING_APPLICATION_EQUIPMENT",
+        "name": "Оборудование нанесения мастики",
+        "aliases": [
+          "Оборудование нанесения мастики",
+          "Оборудование нанесения покрытия/гидроизоляции",
+          "Оборудование распыления гидроизоляции"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование нанесения мастики",
+        "name_en": "Mastic application equipment"
+      },
+      {
+        "id": "COMPRESSOR",
+        "name": "Компрессор",
+        "aliases": [
+          "Компрессор"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Компрессор",
+        "name_en": "Compressor"
+      },
+      {
+        "id": "CONCRETE_COMPACTION_EQUIPMENT",
+        "name": "Оборудование для уплотнения бетона",
+        "aliases": [
+          "Оборудование для уплотнения бетона"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование для уплотнения бетона",
+        "name_en": "Concrete compaction equipment"
+      },
+      {
+        "id": "CONCRETE_MIXER",
+        "name": "Бетоносмеситель",
+        "aliases": [
+          "Бетоносмеситель"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Бетоносмеситель",
+        "name_en": "Concrete mixer"
+      },
+      {
+        "id": "CONCRETE_PAVER",
+        "name": "Бетоноукладчик",
+        "aliases": [
+          "Бетоноукладчик",
+          "Бетоноукладчик при цементобетоне"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "concrete_paver"
+        ],
+        "name_ru": "Бетоноукладчик",
+        "name_en": "Concrete paver"
+      },
+      {
+        "id": "CONCRETE_PUMP",
+        "name": "Бетононасос",
+        "aliases": [
+          "Бетононасос",
+          "Бетононасос при монолитной конструкции",
+          "Бетононасос при монолитном исполнении"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "concrete_pump"
+        ],
+        "name_ru": "Бетононасос",
+        "name_en": "Concrete pump"
+      },
+      {
+        "id": "CORE_DRILL",
+        "name": "Установка алмазного бурения",
+        "aliases": [
+          "Установка алмазного бурения",
+          "Установка алмазного бурения при отверстиях в бетоне"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Установка алмазного бурения",
+        "name_en": "Diamond core drilling rig"
+      },
+      {
+        "id": "COVERING_CUTTER",
+        "name": "Резак для покрытия",
+        "aliases": [
+          "Резак для покрытия"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Резак для покрытия",
+        "name_en": "Flooring and covering cutter"
+      },
+      {
+        "id": "CRANE",
+        "name": "Подъемный кран",
+        "aliases": [
+          "Подъемный кран",
+          "Подъемный кран с бадьей"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "crane"
+        ],
+        "name_ru": "Подъемный кран",
+        "name_en": "Crane"
+      },
+      {
+        "id": "DEMOLITION_EXCAVATOR",
+        "name": "Экскаватор с демонтажным оборудованием",
+        "aliases": [
+          "Экскаватор с демонтажным оборудованием",
+          "Экскаватор-разрушитель",
+          "Экскаватор-разрушитель / демонтажный экскаватор"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "excavator"
+        ],
+        "name_ru": "Экскаватор с демонтажным оборудованием",
+        "name_en": "Excavator with demolition attachments"
+      },
+      {
+        "id": "DEWATERING_PUMP",
+        "name": "Водоотливной насос",
+        "aliases": [
+          "Водоотливной насос"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Водоотливной насос",
+        "name_en": "Dewatering pump"
+      },
+      {
+        "id": "DIAPHRAGM_WALL_EXCAVATION_SYSTEM",
+        "name": "Оборудование разработки траншеи стены в грунте",
+        "aliases": [
+          "Оборудование разработки траншеи стены в грунте"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование разработки траншеи стены в грунте",
+        "name_en": "Diaphragm wall excavation equipment"
+      },
+      {
+        "id": "DIAPHRAGM_WALL_GRAB",
+        "name": "Грейфер для стены в грунте",
+        "aliases": [
+          "Грейфер для стены в грунте"
+        ],
+        "kind": "ATTACHMENT_OR_SPECIALIST_MACHINE",
+        "cctv_visibility": "CONDITIONAL",
+        "detector_classes": [],
+        "name_ru": "Грейфер для стены в грунте",
+        "name_en": "Diaphragm wall grab"
+      },
+      {
+        "id": "DRILLING_INJECTION_RIG",
+        "name": "Буроинъекционная установка",
+        "aliases": [
+          "Буроинъекционная установка"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "drilling_rig"
+        ],
+        "name_ru": "Буроинъекционная установка",
+        "name_en": "Drilling and grouting rig"
+      },
+      {
+        "id": "DRILLING_RIG",
+        "name": "Буровая установка",
+        "aliases": [
+          "Буровая установка"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "drilling_rig"
+        ],
+        "name_ru": "Буровая установка",
+        "name_en": "Drilling rig"
+      },
+      {
+        "id": "DUMP_TRUCK",
+        "name": "Самосвал",
+        "aliases": [
+          "Самосвал"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "dump_truck"
+        ],
+        "name_ru": "Самосвал",
+        "name_en": "Dump truck"
+      },
+      {
+        "id": "DUST_EXTRACTION_EQUIPMENT",
+        "name": "Пылеудаляющее оборудование",
+        "aliases": [
+          "Пылеудаляющее оборудование"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Пылеудаляющее оборудование",
+        "name_en": "Dust extraction equipment"
+      },
+      {
+        "id": "DUST_SUPPRESSION_SYSTEM",
+        "name": "Установка пылеподавления",
+        "aliases": [
+          "Установка пылеподавления"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Установка пылеподавления",
+        "name_en": "Dust suppression system"
+      },
+      {
+        "id": "EXCAVATOR",
+        "name": "Экскаватор",
+        "aliases": [
+          "Экскаватор",
+          "Экскаватор при наружном участке"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "excavator"
+        ],
+        "name_ru": "Экскаватор",
+        "name_en": "Excavator"
+      },
+      {
+        "id": "EXCAVATOR_GRADER",
+        "name": "Экскаватор-планировщик",
+        "aliases": [
+          "Экскаватор-планировщик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "excavator"
+        ],
+        "name_ru": "Экскаватор-планировщик",
+        "name_en": "Grading excavator"
+      },
+      {
+        "id": "FACADE_HOIST",
+        "name": "Фасадный подъемник",
+        "aliases": [
+          "Фасадный подъемник"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Фасадный подъемник",
+        "name_en": "Suspended facade access platform"
+      },
+      {
+        "id": "FLOOR_GRINDER",
+        "name": "Шлифовальная машина для пола",
+        "aliases": [
+          "Шлифовальная машина для пола"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Шлифовальная машина для пола",
+        "name_en": "Floor grinder"
+      },
+      {
+        "id": "FRONT_LOADER",
+        "name": "Фронтальный погрузчик",
+        "aliases": [
+          "Фронтальный погрузчик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "loader"
+        ],
+        "name_ru": "Фронтальный погрузчик",
+        "name_en": "Front-end loader"
+      },
+      {
+        "id": "GANTRY_CRANE",
+        "name": "Козловой кран",
+        "aliases": [
+          "Козловой кран"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "crane"
+        ],
+        "name_ru": "Козловой кран",
+        "name_en": "Gantry crane"
+      },
+      {
+        "id": "GAS_TORCH",
+        "name": "Газовая горелка",
+        "aliases": [
+          "Газовая горелка",
+          "Газовая горелка при наплавляемом материале"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Газовая горелка",
+        "name_en": "Gas torch"
+      },
+      {
+        "id": "GNSS_RECEIVER",
+        "name": "GNSS-приемник",
+        "aliases": [
+          "GNSS-приемник"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "GNSS-приемник",
+        "name_en": "GNSS receiver"
+      },
+      {
+        "id": "GRINDING_MACHINE",
+        "name": "Шлифовальная машина",
+        "aliases": [
+          "Шлифовальная машина"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Шлифовальная машина",
+        "name_en": "Grinding machine"
+      },
+      {
+        "id": "GROUT_MIXING_PLANT",
+        "name": "Растворосмесительная установка",
+        "aliases": [
+          "Растворосмесительная установка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Растворосмесительная установка",
+        "name_en": "Grout mixing plant"
+      },
+      {
+        "id": "HDD_RIG",
+        "name": "Установка горизонтально-направленного бурения",
+        "aliases": [
+          "Установка горизонтально-направленного бурения"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "hdd_rig"
+        ],
+        "name_ru": "Установка горизонтально-направленного бурения",
+        "name_en": "Horizontal directional drilling rig"
+      },
+      {
+        "id": "HOIST",
+        "name": "Подъемник",
+        "aliases": [
+          "Подъемник"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Подъемник",
+        "name_en": "Lift"
+      },
+      {
+        "id": "HYDRAULIC_BREAKER",
+        "name": "Гидромолот",
+        "aliases": [
+          "Гидромолот"
+        ],
+        "kind": "ATTACHMENT_OR_SPECIALIST_MACHINE",
+        "cctv_visibility": "CONDITIONAL",
+        "detector_classes": [],
+        "name_ru": "Гидромолот",
+        "name_en": "Hydraulic breaker"
+      },
+      {
+        "id": "HYDRAULIC_JACK",
+        "name": "Гидравлический домкрат",
+        "aliases": [
+          "Гидравлический домкрат"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Гидравлический домкрат",
+        "name_en": "Hydraulic jack"
+      },
+      {
+        "id": "HYDROMILL",
+        "name": "Гидрофреза",
+        "aliases": [
+          "Гидрофреза"
+        ],
+        "kind": "ATTACHMENT_OR_SPECIALIST_MACHINE",
+        "cctv_visibility": "CONDITIONAL",
+        "detector_classes": [],
+        "name_ru": "Гидрофреза",
+        "name_en": "Hydraulic trench cutter"
+      },
+      {
+        "id": "HYDROSEEDER",
+        "name": "Гидропосевная установка",
+        "aliases": [
+          "Гидропосевная установка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Гидропосевная установка",
+        "name_en": "Hydroseeder"
+      },
+      {
+        "id": "IMPACT_WRENCH",
+        "name": "Гайковерт",
+        "aliases": [
+          "Гайковерт"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Гайковерт",
+        "name_en": "Impact wrench"
+      },
+      {
+        "id": "INJECTION_PUMP",
+        "name": "Инъекционный насос",
+        "aliases": [
+          "Инъекционный насос"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Инъекционный насос",
+        "name_en": "Injection pump"
+      },
+      {
+        "id": "INSULATION_CUTTER",
+        "name": "Резак для утеплителя",
+        "aliases": [
+          "Резак для утеплителя"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Резак для утеплителя",
+        "name_en": "Insulation cutter"
+      },
+      {
+        "id": "INTERNAL_CONCRETE_VIBRATOR",
+        "name": "Бетонный вибратор",
+        "aliases": [
+          "Бетонный вибратор"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Бетонный вибратор",
+        "name_en": "Concrete vibrator"
+      },
+      {
+        "id": "JACKING_SYSTEM",
+        "name": "Домкратная система",
+        "aliases": [
+          "Домкратная система"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Домкратная система",
+        "name_en": "Jacking system"
+      },
+      {
+        "id": "KERB_CLAMP",
+        "name": "Захват для бордюрного камня",
+        "aliases": [
+          "Захват для бордюрного камня"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Захват для бордюрного камня",
+        "name_en": "Kerb lifting clamp"
+      },
+      {
+        "id": "LAWN_ROLLER",
+        "name": "Газонный каток",
+        "aliases": [
+          "Газонный каток"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Газонный каток",
+        "name_en": "Lawn roller"
+      },
+      {
+        "id": "LIFTING_RIGGING_SYSTEM",
+        "name": "Грузоподъемная или такелажная система для секций эскалатора",
+        "aliases": [
+          "Грузоподъемная или такелажная система для секций эскалатора",
+          "Грузоподъемная/такелажная система"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Грузоподъемная или такелажная система для секций эскалатора",
+        "name_en": "Lifting or rigging system for escalator sections"
+      },
+      {
+        "id": "LINOLEUM_WELDER",
+        "name": "Аппарат сварки линолеума",
+        "aliases": [
+          "Аппарат сварки линолеума"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Аппарат сварки линолеума",
+        "name_en": "Linoleum welding tool"
+      },
+      {
+        "id": "LOADER",
+        "name": "Погрузчик",
+        "aliases": [
+          "Погрузчик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "loader"
+        ],
+        "name_ru": "Погрузчик",
+        "name_en": "Loader"
+      },
+      {
+        "id": "LOWBED_TRAILER",
+        "name": "Низкорамный трал",
+        "aliases": [
+          "Низкорамный трал"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Низкорамный трал",
+        "name_en": "Low-bed trailer"
+      },
+      {
+        "id": "MANUAL_TAMPER",
+        "name": "Ручная трамбовка",
+        "aliases": [
+          "Ручная трамбовка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Ручная трамбовка",
+        "name_en": "Hand tamper"
+      },
+      {
+        "id": "MATERIAL_HOIST",
+        "name": "Грузовой подъемник",
+        "aliases": [
+          "Грузовой подъемник"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Грузовой подъемник",
+        "name_en": "Material hoist"
+      },
+      {
+        "id": "MEMBRANE_WELDER",
+        "name": "Аппарат сварки мембран",
+        "aliases": [
+          "Аппарат сварки мембран",
+          "Аппарат сварки полотен"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Аппарат сварки мембран",
+        "name_en": "Membrane welding machine"
+      },
+      {
+        "id": "MINI_CULTIVATOR",
+        "name": "Мини-культиватор",
+        "aliases": [
+          "Мини-культиватор"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Мини-культиватор",
+        "name_en": "Mini cultivator"
+      },
+      {
+        "id": "MINI_EXCAVATOR",
+        "name": "Мини-экскаватор",
+        "aliases": [
+          "Мини-экскаватор"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "excavator"
+        ],
+        "name_ru": "Мини-экскаватор",
+        "name_en": "Mini excavator"
+      },
+      {
+        "id": "MIXING_DRILL",
+        "name": "Строительный миксер",
+        "aliases": [
+          "Строительный миксер"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Строительный миксер",
+        "name_en": "Construction mixing drill"
+      },
+      {
+        "id": "MOBILE_CRANE",
+        "name": "Автокран",
+        "aliases": [
+          "Автокран",
+          "Автокран для дорожных плит",
+          "Автокран при поэлементной разборке"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "crane"
+        ],
+        "name_ru": "Автокран",
+        "name_en": "Truck crane"
+      },
+      {
+        "id": "MORTAR_MIXER",
+        "name": "Растворосмеситель",
+        "aliases": [
+          "Растворосмеситель"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Растворосмеситель",
+        "name_en": "Mortar mixer"
+      },
+      {
+        "id": "MORTAR_PUMP",
+        "name": "Растворонасос",
+        "aliases": [
+          "Растворонасос"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Растворонасос",
+        "name_en": "Mortar pump"
+      },
+      {
+        "id": "MOTOR_GRADER",
+        "name": "Автогрейдер",
+        "aliases": [
+          "Автогрейдер"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "grader"
+        ],
+        "name_ru": "Автогрейдер",
+        "name_en": "Motor grader"
+      },
+      {
+        "id": "PAINT_SPRAYER",
+        "name": "Окрасочный аппарат",
+        "aliases": [
+          "Окрасочный аппарат"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Окрасочный аппарат",
+        "name_en": "Paint sprayer"
+      },
+      {
+        "id": "PANEL_LIFT",
+        "name": "Подъемник для панелей",
+        "aliases": [
+          "Подъемник для панелей"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Подъемник для панелей",
+        "name_en": "Panel lift"
+      },
+      {
+        "id": "PARQUET_SANDER",
+        "name": "Паркетошлифовальная машина",
+        "aliases": [
+          "Паркетошлифовальная машина"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Паркетошлифовальная машина",
+        "name_en": "Parquet floor sander"
+      },
+      {
+        "id": "PILE_DRIVER",
+        "name": "Копровая установка",
+        "aliases": [
+          "Копровая установка",
+          "Сваебойная установка",
+          "Сваебойная/копровая установка"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "piling_rig"
+        ],
+        "name_ru": "Копровая установка",
+        "name_en": "Pile driving rig"
+      },
+      {
+        "id": "PILE_INSTALLATION_RIG",
+        "name": "Сваепогружающее оборудование",
+        "aliases": [
+          "Сваепогружающая установка",
+          "Сваепогружающее оборудование"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Сваепогружающее оборудование",
+        "name_en": "Pile installation equipment"
+      },
+      {
+        "id": "PILE_PRESS",
+        "name": "Гидравлическая установка вдавливания",
+        "aliases": [
+          "Гидравлическая установка вдавливания",
+          "Сваевдавливающая установка"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "piling_rig"
+        ],
+        "name_ru": "Гидравлическая установка вдавливания",
+        "name_en": "Hydraulic pile press"
+      },
+      {
+        "id": "PIPELAYER",
+        "name": "Трубоукладчик",
+        "aliases": [
+          "Трубоукладчик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "pipelayer"
+        ],
+        "name_ru": "Трубоукладчик",
+        "name_en": "Pipelayer"
+      },
+      {
+        "id": "PIPE_JOINING_EQUIPMENT",
+        "name": "Оборудование соединения труб",
+        "aliases": [
+          "Оборудование соединения труб",
+          "Пресс-инструмент или сварочный аппарат для выбранного материала труб"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование соединения труб",
+        "name_en": "Pipe joining equipment"
+      },
+      {
+        "id": "PIPE_WELDER",
+        "name": "Сварочная машина для труб",
+        "aliases": [
+          "Сварочная машина для выбранного материала труб",
+          "Сварочная машина для труб"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Сварочная машина для труб",
+        "name_en": "Pipe welding machine"
+      },
+      {
+        "id": "PLASTERING_MACHINE",
+        "name": "Штукатурная станция",
+        "aliases": [
+          "Штукатурная станция"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Штукатурная станция",
+        "name_en": "Plastering machine"
+      },
+      {
+        "id": "PLATE_COMPACTOR",
+        "name": "Виброплита",
+        "aliases": [
+          "Виброплита"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Виброплита",
+        "name_en": "Vibratory plate compactor"
+      },
+      {
+        "id": "POST_DRIVER",
+        "name": "Установка забивки стоек ограждений",
+        "aliases": [
+          "Установка забивки стоек ограждений"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Установка забивки стоек ограждений",
+        "name_en": "Fence post driving machine"
+      },
+      {
+        "id": "POST_HOLE_DRILL",
+        "name": "Буровое оборудование для стоек и ям",
+        "aliases": [
+          "Бур для стоек",
+          "Буровая установка для стоек",
+          "Буровое оборудование для стоек/ям",
+          "Мотобур"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Буровое оборудование для стоек и ям",
+        "name_en": "Post-hole drilling equipment"
+      },
+      {
+        "id": "POWER_SCREWDRIVER",
+        "name": "Шуруповерт",
+        "aliases": [
+          "Шуруповерт"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Шуруповерт",
+        "name_en": "Power screwdriver"
+      },
+      {
+        "id": "PRESS_TOOL",
+        "name": "Пресс-инструмент для труб",
+        "aliases": [
+          "Пресс-инструмент для труб"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Пресс-инструмент для труб",
+        "name_en": "Pipe press tool"
+      },
+      {
+        "id": "RAIL_MANIPULATOR",
+        "name": "Рельсовый манипулятор",
+        "aliases": [
+          "Рельсовый манипулятор"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Рельсовый манипулятор",
+        "name_en": "Rail handling manipulator"
+      },
+      {
+        "id": "REBAR_PROCESSING_MACHINE",
+        "name": "Станок резки и гибки арматуры",
+        "aliases": [
+          "Станок резки и гибки арматуры"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Станок резки и гибки арматуры",
+        "name_en": "Rebar cutting and bending machine"
+      },
+      {
+        "id": "RIGGING_TROLLEY",
+        "name": "Такелажная тележка",
+        "aliases": [
+          "Такелажная тележка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Такелажная тележка",
+        "name_en": "Machinery moving trolley"
+      },
+      {
+        "id": "ROAD_MARKING_MACHINE",
+        "name": "Разметочная машина",
+        "aliases": [
+          "Разметочная машина"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Разметочная машина",
+        "name_en": "Road marking machine"
+      },
+      {
+        "id": "ROAD_ROLLER",
+        "name": "Каток",
+        "aliases": [
+          "Каток"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "roller"
+        ],
+        "name_ru": "Каток",
+        "name_en": "Road roller"
+      },
+      {
+        "id": "ROOF_HOIST",
+        "name": "Кровельный подъемник",
+        "aliases": [
+          "Кровельный подъемник"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Кровельный подъемник",
+        "name_en": "Roofing hoist"
+      },
+      {
+        "id": "ROTARY_HAMMER",
+        "name": "Перфоратор",
+        "aliases": [
+          "Буровое/сверлильное оборудование для стоек/анкеров",
+          "Перфоратор"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Перфоратор",
+        "name_en": "Rotary hammer drill"
+      },
+      {
+        "id": "RUBBER_MIXER",
+        "name": "Смеситель для резиновой крошки",
+        "aliases": [
+          "Смеситель для резиновой крошки",
+          "Смеситель резиновой крошки"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Смеситель для резиновой крошки",
+        "name_en": "Rubber crumb mixer"
+      },
+      {
+        "id": "RUBBER_PAVER",
+        "name": "Укладчик резинового покрытия",
+        "aliases": [
+          "Укладчик резинового покрытия"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Укладчик резинового покрытия",
+        "name_en": "Rubber surfacing paver"
+      },
+      {
+        "id": "SEEDER",
+        "name": "Сеялка",
+        "aliases": [
+          "Сеялка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Сеялка",
+        "name_en": "Seeder"
+      },
+      {
+        "id": "SEGMENT_TRANSPORTER",
+        "name": "Сегментовоз",
+        "aliases": [
+          "Сегментовоз"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Сегментовоз",
+        "name_en": "Tunnel segment transporter"
+      },
+      {
+        "id": "SHEET_METAL_BENDER",
+        "name": "Листогиб",
+        "aliases": [
+          "Листогиб"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Листогиб",
+        "name_en": "Sheet metal bending machine"
+      },
+      {
+        "id": "SHEET_PILE_INSTALLATION_SYSTEM",
+        "name": "Система погружения шпунта",
+        "aliases": [
+          "Система погружения шпунта"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Система погружения шпунта",
+        "name_en": "Sheet pile installation system"
+      },
+      {
+        "id": "SILL_CUTTER",
+        "name": "Пила или резак для подоконников",
+        "aliases": [
+          "Пила или резак для подоконников"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Пила или резак для подоконников",
+        "name_en": "Window sill saw or cutter"
+      },
+      {
+        "id": "SKIP_LOADER_TRUCK",
+        "name": "Бункеровоз",
+        "aliases": [
+          "Бункеровоз"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "truck"
+        ],
+        "name_ru": "Бункеровоз",
+        "name_en": "Skip loader truck"
+      },
+      {
+        "id": "SOIL_COMPACTION_EQUIPMENT",
+        "name": "Оборудование уплотнения грунта или основания",
+        "aliases": [
+          "Грунтоуплотняющее оборудование",
+          "Оборудование уплотнения грунта или основания"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование уплотнения грунта или основания",
+        "name_en": "Soil or base course compaction equipment"
+      },
+      {
+        "id": "SOIL_MIXING_RIG",
+        "name": "Грунтосмесительная установка",
+        "aliases": [
+          "Грунтосмесительная установка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Грунтосмесительная установка",
+        "name_en": "Soil mixing rig"
+      },
+      {
+        "id": "SOIL_ROLLER",
+        "name": "Грунтовый каток",
+        "aliases": [
+          "Грунтовый каток"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "roller"
+        ],
+        "name_ru": "Грунтовый каток",
+        "name_en": "Soil compaction roller"
+      },
+      {
+        "id": "SPAN_LIFT_OR_LAUNCH_SYSTEM",
+        "name": "Грузоподъемная или надвижочная система для пролетных элементов",
+        "aliases": [
+          "Грузоподъемная или надвижочная система для пролетных элементов",
+          "Грузоподъемная/надвижочная система пролетных элементов"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Грузоподъемная или надвижочная система для пролетных элементов",
+        "name_en": "Bridge span lifting or launching system"
+      },
+      {
+        "id": "SURVEY_INSTRUMENT",
+        "name": "Геодезический измерительный прибор",
+        "aliases": [
+          "Геодезический измерительный прибор"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Геодезический измерительный прибор",
+        "name_en": "Surveying instrument"
+      },
+      {
+        "id": "TBM_ASSEMBLY_LIFTING_SYSTEM",
+        "name": "Грузоподъемная система для сборки ТПМК",
+        "aliases": [
+          "Грузоподъемная система для сборки ТПМК"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Грузоподъемная система для сборки ТПМК",
+        "name_en": "TBM assembly lifting system"
+      },
+      {
+        "id": "TBM_MUCK_REMOVAL",
+        "name": "Система удаления грунта ТПМК",
+        "aliases": [
+          "Система удаления грунта ТПМК",
+          "Система удаления грунта, выбранная для ТПМК"
+        ],
+        "kind": "PROCESS_PLANT",
+        "cctv_visibility": "USUALLY_HIDDEN",
+        "detector_classes": [],
+        "name_ru": "Система удаления грунта ТПМК",
+        "name_en": "TBM muck removal system"
+      },
+      {
+        "id": "TBM_WITH_SEGMENT_ERECTOR",
+        "name": "ТПМК с механизмом монтажа сегментов обделки",
+        "aliases": [
+          "ТПМК / тоннелепроходческий комплекс",
+          "ТПМК с механизмом монтажа сегментов",
+          "ТПМК с механизмом монтажа сегментов обделки"
+        ],
+        "kind": "PROCESS_PLANT",
+        "cctv_visibility": "USUALLY_HIDDEN",
+        "detector_classes": [],
+        "name_ru": "ТПМК с механизмом монтажа сегментов обделки",
+        "name_en": "Tunnel boring machine with segment erector"
+      },
+      {
+        "id": "THEODOLITE",
+        "name": "Теодолит",
+        "aliases": [
+          "Теодолит"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Теодолит",
+        "name_en": "Theodolite"
+      },
+      {
+        "id": "THERMOPLASTIC_MARKER",
+        "name": "Аппарат нанесения термопластика",
+        "aliases": [
+          "Аппарат нанесения термопластика"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Аппарат нанесения термопластика",
+        "name_en": "Thermoplastic road marking applicator"
+      },
+      {
+        "id": "TILE_CUTTER",
+        "name": "Плиткорез",
+        "aliases": [
+          "Плиткорез"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Плиткорез",
+        "name_en": "Tile cutter"
+      },
+      {
+        "id": "TOTAL_STATION",
+        "name": "Тахеометр",
+        "aliases": [
+          "Тахеометр"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Тахеометр",
+        "name_en": "Total station"
+      },
+      {
+        "id": "TRACK_CRANE",
+        "name": "Путевой кран",
+        "aliases": [
+          "Путевой кран"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "crane"
+        ],
+        "name_ru": "Путевой кран",
+        "name_en": "Railway track crane"
+      },
+      {
+        "id": "TRACK_LAYING_MACHINE",
+        "name": "Путеукладчик",
+        "aliases": [
+          "Путеукладчик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "track_layer"
+        ],
+        "name_ru": "Путеукладчик",
+        "name_en": "Track laying machine"
+      },
+      {
+        "id": "TREE_TRANSPLANTER",
+        "name": "Машина для пересадки деревьев",
+        "aliases": [
+          "Машина для пересадки деревьев"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Машина для пересадки деревьев",
+        "name_en": "Tree transplanting machine"
+      },
+      {
+        "id": "TRUCK",
+        "name": "Грузовой автомобиль",
+        "aliases": [
+          "Грузовой автомобиль"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "truck"
+        ],
+        "name_ru": "Грузовой автомобиль",
+        "name_en": "Truck"
+      },
+      {
+        "id": "TRUCK_MIXER",
+        "name": "Автобетоносмеситель",
+        "aliases": [
+          "Автобетоносмеситель"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "concrete_mixer_truck"
+        ],
+        "name_ru": "Автобетоносмеситель",
+        "name_en": "Concrete mixer truck"
+      },
+      {
+        "id": "TRUCK_MOUNTED_CRANE",
+        "name": "Кран-манипулятор",
+        "aliases": [
+          "Кран-манипулятор"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "crane"
+        ],
+        "name_ru": "Кран-манипулятор",
+        "name_en": "Truck-mounted loader crane"
+      },
+      {
+        "id": "VACUUM_LIFTER",
+        "name": "Вакуумный подъемник/захват",
+        "aliases": [
+          "Вакуумный захват",
+          "Вакуумный захват при остекленном полотне",
+          "Вакуумный подъемник",
+          "Вакуумный подъемник/захват"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Вакуумный подъемник/захват",
+        "name_en": "Vacuum lifter"
+      },
+      {
+        "id": "VIBRATING_SCREED",
+        "name": "Виброрейка",
+        "aliases": [
+          "Виброрейка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Виброрейка",
+        "name_en": "Vibrating screed"
+      },
+      {
+        "id": "VIBRATORY_PILE_DRIVER",
+        "name": "Вибропогружатель",
+        "aliases": [
+          "Вибропогружатель"
+        ],
+        "kind": "ATTACHMENT_OR_SPECIALIST_MACHINE",
+        "cctv_visibility": "CONDITIONAL",
+        "detector_classes": [],
+        "name_ru": "Вибропогружатель",
+        "name_en": "Vibratory pile driver"
+      },
+      {
+        "id": "VIBRATORY_RAMMER",
+        "name": "Вибротрамбовка",
+        "aliases": [
+          "Вибротрамбовка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Вибротрамбовка",
+        "name_en": "Vibratory rammer"
+      },
+      {
+        "id": "WALL_SAW",
+        "name": "Алмазная стенорезная машина",
+        "aliases": [
+          "Алмазная стенорезная машина"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Алмазная стенорезная машина",
+        "name_en": "Diamond wall saw"
+      },
+      {
+        "id": "WATER_TRUCK",
+        "name": "Поливомоечная машина",
+        "aliases": [
+          "Поливомоечная машина"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "truck"
+        ],
+        "name_ru": "Поливомоечная машина",
+        "name_en": "Water spraying truck"
+      },
+      {
+        "id": "WELDING_MACHINE",
+        "name": "Сварочный аппарат",
+        "aliases": [
+          "Сварочный аппарат"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Сварочный аппарат",
+        "name_en": "Welding machine"
+      },
+      {
+        "id": "WINCH",
+        "name": "Лебедка",
+        "aliases": [
+          "Лебедка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Лебедка",
+        "name_en": "Winch"
+      },
+      {
+        "id": "WOOD_CHIPPER",
+        "name": "Измельчитель древесины",
+        "aliases": [
+          "Измельчитель древесины"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Измельчитель древесины",
+        "name_en": "Wood chipper"
+      },
+      {
+        "id": "WORK_PLATFORM",
+        "name": "Подъемная платформа",
+        "aliases": [
+          "Подъемная платформа",
+          "Подъемная платформа при внутреннем монтаже"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "aerial_platform"
+        ],
+        "name_ru": "Подъемная платформа",
+        "name_en": "Elevating work platform"
+      }
+    ],
+    "review": {
+      "reviewed_on": "2026-09-18",
+      "status": "TECHNICAL_DESK_REVIEW_NOT_PROJECT_PPR",
+      "original_snapshot": "rnd/store/data_by_gen_ai/construction_work_cards.original.json",
+      "original_sha256": "cab666da98ae1db984ac402667a02488a21cf764dec7e987e4773a7dcb97d83e",
+      "additional_context": "rnd/store/data_by_gen_ai/construction_work_cards_enriched_corrected.json",
+      "additional_context_sha256": "c116049b552976d9a98fb741fdc61c39016b4e9da31534fb8753daea31f34548",
+      "previous_agent_relation_and_normative_claims": "REVIEWED_AS_PROPOSAL_NOT_IMPORTED_AS_VERIFIED_FACT",
+      "coverage": "Все 377 строк сопоставлены и снабжены статусом и условиями. Не каждая возможная машина подтверждена независимым источником; уровень основания указан у каждой связи."
+    }
+  },
+  {
+    "schema_version": "1.1",
+    "source": {
+      "file": "rnd/store/data_src/7.ДГП_датасеты/Сводный перечень строительных работ_ЛТЦ.xlsx",
+      "sha256": "82beeb771b5d24bd3fc7323a34f35808dce0c3f396498303a3dd9b9d7f860e3a",
+      "sheet": "Лист1",
+      "name_column": "B",
+      "first_data_row": 4,
+      "last_data_row": 380,
+      "card_count": 377
+    },
+    "semantics": {
+      "equipment_classes": "Уникальные классы всех возможных средств и обязательных/условных функциональных групп данной работы. class_id совпадает с id онтологии; name_ru/name_en — названия. Наличие в массиве не задаёт обязательность.",
+      "detector_classes": "Укрупнённые классы распознавания с названиями ru/en; соответствуют cctv.candidate_detector_classes. Мелкие инструменты и функциональные группы могут не иметь такого класса.",
+      "bilingual_names": "name_ru/name_en в онтологии и массивах классов; equipment_name_ru/equipment_name_en в перечнях техники. Прежние name и equipment_name сохранены как русские названия.",
+      "required_equipment": "Безусловные функциональные требования только в указанной фазе работы; one_of — альтернативы, между группами AND.",
+      "conditional_required_equipment": "Требования при подтверждении всех полей when и выполнении указанной фазы; неизвестное условие не активирует требование.",
+      "possible_equipment": "Объединение кандидатов, включая альтернативы обязательного оборудования; список не исчерпывающий и не требует совместного присутствия.",
+      "empty_required_equipment": "Смотрите requirement_status: пустой список не подменяет неизвестный метод утверждением, что техника не нужна.",
+      "source_of_equipment": "Технические источники и экспертные выводы; в Excel техника не перечислена."
+    },
+    "monitoring_policy": {
+      "required_context": [
+        "site_id",
+        "zone_id",
+        "planned_work_id",
+        "active_operation",
+        "selected_method",
+        "camera_coverage",
+        "equipment_visibility",
+        "observation_window",
+        "detector_validation"
+      ],
+      "missing_equipment": "Только риск: применимая группа не наблюдалась в зоне активной операции за настроенное окно при достаточном обзоре всех допустимых альтернатив. Один снимок недостаточен.",
+      "unexpected_equipment": "Кандидат на проверку после учета всех параллельных работ, соседних зон, доставки и транзита. Отсутствие в possible_equipment само по себе не аномалия.",
+      "aggregate": "Общие разделы не запускают тревоги; выберите конкретную операцию.",
+      "detector_classes": "Подсказки для будущей модели, не перечень обученных классов. Общий класс crane/excavator не доказывает наличие нужного навесного оборудования, грузоподъемности или функции.",
+      "time_thresholds": "Не назначены: требуются сменный график, метод и локальная калибровка.",
+      "counts": "Количество машин, даты и производительность отсутствуют в исходнике и не выводятся из наличия оборудования."
+    },
+    "sources": [
+      {
+        "id": "sheet_piles",
+        "title": "ArcelorMittal: Installation equipment",
+        "url": "https://sheetpiling.arcelormittal.com/installation-equipment",
+        "supports": "Погружение шпунта: вибрация, удар или гидравлическое вдавливание; выбор зависит от грунта.",
+        "locator": "Standard installation techniques",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "bored_piles",
+        "title": "BAUER: Piles",
+        "url": "https://geotechnical-solutions.bauer.de/en/piles",
+        "supports": "Kelly и CFA — буровые методы устройства свай; насосная подача зависит от метода.",
+        "locator": "Kelly pile; Continuous Flight Auger pile",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "micropiles",
+        "title": "Keller: Micropiles",
+        "url": "https://www.keller.com/expertise/techniques/micropiles",
+        "supports": "Микросваи выполняют бурением с армированием и заполнением цементным раствором.",
+        "locator": "Process",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "diaphragm",
+        "title": "BAUER: Diaphragm walls",
+        "url": "https://geotechnical-solutions.bauer.de/en/diaphragm-walls",
+        "supports": "Траншею стены в грунте разрабатывают грейфером или фрезой под защитным раствором.",
+        "locator": "Diaphragm wall grab / cutter excavated",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "grouting",
+        "title": "BAUER: Injections",
+        "url": "https://geotechnical-solutions.bauer.de/en/grouting",
+        "supports": "Закрепление инъекциями и струйная цементация — отдельные технологии укрепления грунта.",
+        "locator": "Compaction grouting; Jet grouting",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "tbm",
+        "title": "Herrenknecht: Double Shield TBM",
+        "url": "https://www.herrenknecht.com/en/products/productdetail/double-shield-tbm/",
+        "supports": "Щит оснащён режущей головкой, транспортом грунта и эректором сегментов.",
+        "locator": "Machine belt; Erector",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "SEARCH_INDEX_EXCERPT"
+      },
+      {
+        "id": "hdd",
+        "title": "Vermeer: Horizontal Directional Drills",
+        "url": "https://www.vermeer.com/na/directional-drills",
+        "supports": "ГНБ — способ бестраншейной прокладки коммуникаций.",
+        "locator": "Horizontal directional drills",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "earthmoving",
+        "title": "Caterpillar: Step Up Your Truck Loading Game",
+        "url": "https://www.cat.com/en_GB/articles/ci-articles/how-to-load-your-truck-efficiently.html",
+        "supports": "Экскаватор загружает грунт в автомобиль; это конкретная схема перемещения материала.",
+        "locator": "Truck loading",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "demolition",
+        "title": "Caterpillar: Demolition excavators",
+        "url": "https://www.cat.com/en_GB/products/new/equipment/excavators/demolition-excavators.html",
+        "supports": "Демонтажные экскаваторы предназначены для механизированного разрушения конструкций.",
+        "locator": "Demolition excavators",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "soil_compaction",
+        "title": "Wirtgen: Soil compaction",
+        "url": "https://www.wirtgen-group.com/en-de/applications/earthworks/soil-compaction/",
+        "supports": "Грунтовые слои уплотняют статическим и динамическим воздействием; каток — один из механизмов.",
+        "locator": "Soil compaction",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "asphalt",
+        "title": "Wirtgen: Small machines for small construction sites",
+        "url": "https://www.wirtgen-group.com/en-ps/news/wirtgen-group/wg_pr_2025_technology_small_job_sites/",
+        "supports": "Укладчики и компактные катки применяются на небольших асфальтовых площадках и дорожках.",
+        "locator": "Small and versatile",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "mastic_asphalt",
+        "title": "IMAA: The Mastic Asphalt Industry — a European Perspective",
+        "url": "https://mastic-asphalt.eu/fileadmin/user_upload/mastic-asphalt/public/en/IMAA_global_perspective_mastic_asphalt_19_10_10.pdf",
+        "supports": "Литой асфальт не требует уплотнения смеси; это исключение для общего названия асфальтобетонного покрытия.",
+        "locator": "Description of the product; 6.4",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "concrete_vibration",
+        "title": "Wacker Neuson: Internal Vibrators",
+        "url": "https://www.wackerneuson.com/us/products/concrete-technology/internal-vibrators",
+        "supports": "Глубинные вибраторы служат для уплотнения свежего бетона.",
+        "locator": "Internal vibrators",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "scc",
+        "title": "Sika: Self Compacting Concrete",
+        "url": "https://gbr.sika.com/en/construction/concrete/concrete-technology/self-compacting-concrete.html",
+        "supports": "Самоуплотняющийся бетон укладывается без виброуплотнения.",
+        "locator": "Self Compacting Concrete",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "injection",
+        "title": "ТЕХНОНИКОЛЬ: Руководство по применению инъекционных материалов",
+        "url": "https://technonicol.com/upload/iblock/36d/0klz9nxpafo2etaxpfg2ked2eq2ct6jx/Rukovodstvo-inektsii_2_web_1.pdf",
+        "supports": "При напорном инъектировании насос подаёт состав через пакеры.",
+        "locator": "Раздел 8.4; 8.5",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "membrane",
+        "title": "ТЕХНОНИКОЛЬ: Монтаж однослойной кровли из полимерной мембраны",
+        "url": "https://nav.tn.ru/cloud/iblock/751/RF_S_PK_TN_Instruktsiya_po_montazhu_odnosloynoy_krovli_izpolimernoy_membrany.pdf",
+        "supports": "Сварные полимерные мембраны соединяют специализированным оборудованием горячего воздуха.",
+        "locator": "2.3. Оборудование горячего воздуха",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "transbarrier",
+        "title": "Москомархитектура: Распоряжение № 133 от 19.01.2022",
+        "url": "https://www.mos.ru/upload/documents/files/9443/RasporyajenieMKA133ot19012022.pdf",
+        "supports": "Трансбарьер указан как металлическое барьерное ограждение; источник не задаёт машины монтажа.",
+        "locator": "PDF страница 180, элемент 67_8",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "survey",
+        "title": "Leica: Construction Total Stations & GNSS",
+        "url": "https://leica-geosystems.com/products/construction-tps-and-gnss/icon-content-hub",
+        "supports": "Тахеометры и GNSS применяются для позиционирования и разбивки на стройплощадке.",
+        "locator": "Construction layout",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "drywall",
+        "title": "КНАУФ: Облицовка С 611",
+        "url": "https://www.knauf.ru/systems/oblitsovki/oblitsovki-gipsokarton/s-611-a/",
+        "supports": "Существуют бескаркасные облицовки на клею. Источник не подтверждает двухслойную конструкцию из строки 127.",
+        "locator": "Описание системы С 611",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "plaster",
+        "title": "КНАУФ: Как работать с Ротбанд",
+        "url": "https://www.knauf.ru/service/blog/knauf-rotband-universal-gypsum-plaster/",
+        "supports": "Раствор готовят с использованием штукатурного миксера; нанесение может быть ручным.",
+        "locator": "Инструменты и подготовка раствора",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "pipe_welding",
+        "title": "ROTHENBERGER: ROWELD Butt Welding",
+        "url": "https://rothenberger.com/us-en/products/plastic-pipe-welding/roweld-butt-welding",
+        "supports": "Для стыковой сварки полимерных труб применяется специализированная сварочная машина.",
+        "locator": "ROWELD Butt Welding",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "pipe_press",
+        "title": "ROTHENBERGER: Pressing",
+        "url": "https://us.rothenberger.com/us-en/products/installation/pressing/",
+        "supports": "Прессовые соединения выполняются пресс-инструментом соответствующего диаметра.",
+        "locator": "Pressing",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      },
+      {
+        "id": "escalators",
+        "title": "Schindler: Planning Guide for Escalators and Moving Walks",
+        "url": "https://www.schindler.co.uk/content/dam/website/uk/docs/escalators-moving-walks/schindler-escalator-planning-guide.pdf/_jcr_content/renditions/original./schindler-escalator-planning-guide.pdf",
+        "supports": "Разгрузка, перемещение и подъём эскалатора выполняются разными средствами; наружный кран не универсален.",
+        "locator": "Страница 28, Setting Down Onto the End Supports",
+        "checked_on": "2026-09-18",
+        "evidence_type": "PRIMARY_TECHNICAL_REFERENCE",
+        "access": "WEB_TEXT_OR_INDEXED_DOCUMENT"
+      }
+    ],
+    "equipment_ontology": [
+      {
+        "id": "BULLDOZER",
+        "name": "Бульдозер",
+        "aliases": [
+          "Бульдозер"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "bulldozer"
+        ],
+        "name_ru": "Бульдозер",
+        "name_en": "Bulldozer"
+      },
+      {
+        "id": "DEWATERING_PUMP",
+        "name": "Водоотливной насос",
+        "aliases": [
+          "Водоотливной насос"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Водоотливной насос",
+        "name_en": "Dewatering pump"
+      },
+      {
+        "id": "DUMP_TRUCK",
+        "name": "Самосвал",
+        "aliases": [
+          "Самосвал"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "dump_truck"
+        ],
+        "name_ru": "Самосвал",
+        "name_en": "Dump truck"
+      },
+      {
+        "id": "EXCAVATOR",
+        "name": "Экскаватор",
+        "aliases": [
+          "Экскаватор",
+          "Экскаватор при наружном участке"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "excavator"
+        ],
+        "name_ru": "Экскаватор",
+        "name_en": "Excavator"
+      },
+      {
+        "id": "LOADER",
+        "name": "Погрузчик",
+        "aliases": [
+          "Погрузчик"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "loader"
+        ],
+        "name_ru": "Погрузчик",
+        "name_en": "Loader"
+      },
+      {
+        "id": "MANUAL_TAMPER",
+        "name": "Ручная трамбовка",
+        "aliases": [
+          "Ручная трамбовка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Ручная трамбовка",
+        "name_en": "Hand tamper"
+      },
+      {
+        "id": "MINI_EXCAVATOR",
+        "name": "Мини-экскаватор",
+        "aliases": [
+          "Мини-экскаватор"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "excavator"
+        ],
+        "name_ru": "Мини-экскаватор",
+        "name_en": "Mini excavator"
+      },
+      {
+        "id": "PLATE_COMPACTOR",
+        "name": "Виброплита",
+        "aliases": [
+          "Виброплита"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Виброплита",
+        "name_en": "Vibratory plate compactor"
+      },
+      {
+        "id": "ROAD_ROLLER",
+        "name": "Каток",
+        "aliases": [
+          "Каток"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "roller"
+        ],
+        "name_ru": "Каток",
+        "name_en": "Road roller"
+      },
+      {
+        "id": "SOIL_COMPACTION_EQUIPMENT",
+        "name": "Оборудование уплотнения грунта или основания",
+        "aliases": [
+          "Грунтоуплотняющее оборудование",
+          "Оборудование уплотнения грунта или основания"
+        ],
+        "kind": "FUNCTIONAL_CLASS",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Оборудование уплотнения грунта или основания",
+        "name_en": "Soil or base course compaction equipment"
+      },
+      {
+        "id": "SOIL_ROLLER",
+        "name": "Грунтовый каток",
+        "aliases": [
+          "Грунтовый каток"
+        ],
+        "kind": "MOBILE_MACHINE",
+        "cctv_visibility": "HIGH",
+        "detector_classes": [
+          "roller"
+        ],
+        "name_ru": "Грунтовый каток",
+        "name_en": "Soil compaction roller"
+      },
+      {
+        "id": "VIBRATORY_RAMMER",
+        "name": "Вибротрамбовка",
+        "aliases": [
+          "Вибротрамбовка"
+        ],
+        "kind": "TOOL_OR_PROCESS_EQUIPMENT",
+        "cctv_visibility": "LOW",
+        "detector_classes": [],
+        "name_ru": "Вибротрамбовка",
+        "name_en": "Vibratory rammer"
+      }
+    ],
+    "detector_class_catalog": [
+      {
+        "class_id": "aerial_platform",
+        "name_ru": "Подъёмная рабочая платформа",
+        "name_en": "Aerial work platform"
+      },
+      {
+        "class_id": "asphalt_paver",
+        "name_ru": "Асфальтоукладчик",
+        "name_en": "Asphalt paver"
+      },
+      {
+        "class_id": "bulldozer",
+        "name_ru": "Бульдозер",
+        "name_en": "Bulldozer"
+      },
+      {
+        "class_id": "concrete_mixer_truck",
+        "name_ru": "Автобетоносмеситель",
+        "name_en": "Concrete mixer truck"
+      },
+      {
+        "class_id": "concrete_paver",
+        "name_ru": "Бетоноукладчик",
+        "name_en": "Concrete paver"
+      },
+      {
+        "class_id": "concrete_pump",
+        "name_ru": "Бетононасос",
+        "name_en": "Concrete pump"
+      },
+      {
+        "class_id": "crane",
+        "name_ru": "Подъёмный кран",
+        "name_en": "Crane"
+      },
+      {
+        "class_id": "drilling_rig",
+        "name_ru": "Буровая установка",
+        "name_en": "Drilling rig"
+      },
+      {
+        "class_id": "dump_truck",
+        "name_ru": "Самосвал",
+        "name_en": "Dump truck"
+      },
+      {
+        "class_id": "excavator",
+        "name_ru": "Экскаватор",
+        "name_en": "Excavator"
+      },
+      {
+        "class_id": "grader",
+        "name_ru": "Автогрейдер",
+        "name_en": "Motor grader"
+      },
+      {
+        "class_id": "hdd_rig",
+        "name_ru": "Установка горизонтально-направленного бурения",
+        "name_en": "Horizontal directional drilling rig"
+      },
+      {
+        "class_id": "loader",
+        "name_ru": "Погрузчик",
+        "name_en": "Loader"
+      },
+      {
+        "class_id": "piling_rig",
+        "name_ru": "Сваепогружающая установка",
+        "name_en": "Piling rig"
+      },
+      {
+        "class_id": "pipelayer",
+        "name_ru": "Трубоукладчик",
+        "name_en": "Pipelayer"
+      },
+      {
+        "class_id": "roller",
+        "name_ru": "Каток",
+        "name_en": "Roller"
+      },
+      {
+        "class_id": "track_layer",
+        "name_ru": "Путеукладчик",
+        "name_en": "Track laying machine"
+      },
+      {
+        "class_id": "truck",
+        "name_ru": "Грузовой автомобиль",
+        "name_en": "Truck"
+      }
+    ],
+    "works": [
+      {
+        "work_id": "work_004",
+        "work_name": "Подготовка территории",
+        "canonical_work_name": "Подготовка территории",
+        "equipment_classes": [
+          {
+            "class_id": "DUMP_TRUCK",
+            "name_ru": "Самосвал",
+            "name_en": "Dump truck"
+          },
+          {
+            "class_id": "EXCAVATOR",
+            "name_ru": "Экскаватор",
+            "name_en": "Excavator"
+          },
+          {
+            "class_id": "LOADER",
+            "name_ru": "Погрузчик",
+            "name_en": "Loader"
+          }
+        ],
+        "detector_classes": [
+          {
+            "class_id": "dump_truck",
+            "name_ru": "Самосвал",
+            "name_en": "Dump truck"
+          },
+          {
+            "class_id": "excavator",
+            "name_ru": "Экскаватор",
+            "name_en": "Excavator"
+          },
+          {
+            "class_id": "loader",
+            "name_ru": "Погрузчик",
+            "name_en": "Loader"
+          }
+        ],
+        "source": {
+          "sheet": "Лист1",
+          "row": 4,
+          "cell": "B4",
+          "context": [
+            "Подготовка территории"
+          ],
+          "applicability_marks": {
+            "Жильё": "˅",
+            "Образование": "˅",
+            "Здравоохранение": "˅",
+            "Спорт": "˅",
+            "Культура": "˅",
+            "Административные здания": "˅",
+            "ДОУ": "˅",
+            "Офисно-деловой центр": "˅",
+            "Дороги": "˅"
+          }
+        },
+        "row_kind": "AGGREGATE",
+        "macro_stage": "SITE_PREPARATION",
+        "applicable_object_types": [
+          "Жильё",
+          "Образование",
+          "Здравоохранение",
+          "Спорт",
+          "Культура",
+          "Административные здания",
+          "ДОУ",
+          "Офисно-деловой центр",
+          "Дороги"
+        ],
+        "requirement_status": "AGGREGATE_SELECT_OPERATION",
+        "required_equipment": [],
+        "conditional_required_equipment": [],
+        "possible_equipment": [
+          {
+            "equipment_id": "DUMP_TRUCK",
+            "equipment_name": "Самосвал",
+            "equipment_name_ru": "Самосвал",
+            "equipment_name_en": "Dump truck",
+            "relation": "MAY_USE",
+            "condition": "Автомобильная доставка или вывоз сыпучего материала; при складировании на участке или другом транспорте может не применяться.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Самосвал"
+          },
+          {
+            "equipment_id": "EXCAVATOR",
+            "equipment_name": "Экскаватор",
+            "equipment_name_ru": "Экскаватор",
+            "equipment_name_en": "Excavator",
+            "relation": "MAY_USE",
+            "condition": "Открытая механизированная разработка или перемещение грунта; не распространяется на закрытый монтаж и все бестраншейные методы.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Экскаватор"
+          },
+          {
+            "equipment_id": "LOADER",
+            "equipment_name": "Погрузчик",
+            "equipment_name_ru": "Погрузчик",
+            "equipment_name_en": "Loader",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Погрузчик"
+          }
+        ],
+        "review_notes": [
+          "Сводный раздел: список возможных средств справочный; требования активируются на уровне выбранной операции."
+        ],
+        "cctv": {
+          "requires_project_configuration": true,
+          "automatic_absence_alert_enabled": false,
+          "reason": "Сводный раздел либо нет надежного наблюдения операции наружной камерой; автоматическая проверка отсутствия не назначается.",
+          "candidate_detector_classes": [
+            "dump_truck",
+            "excavator",
+            "loader"
+          ],
+          "external_view_limitation": "Сводный раздел; конкретная операция определяется по дочерним строкам."
+        }
+      },
+      {
+        "work_id": "work_047",
+        "work_name": "Устройство котлована",
+        "canonical_work_name": "Устройство котлована",
+        "equipment_classes": [
+          {
+            "class_id": "BULLDOZER",
+            "name_ru": "Бульдозер",
+            "name_en": "Bulldozer"
+          },
+          {
+            "class_id": "DEWATERING_PUMP",
+            "name_ru": "Водоотливной насос",
+            "name_en": "Dewatering pump"
+          },
+          {
+            "class_id": "DUMP_TRUCK",
+            "name_ru": "Самосвал",
+            "name_en": "Dump truck"
+          },
+          {
+            "class_id": "EXCAVATOR",
+            "name_ru": "Экскаватор",
+            "name_en": "Excavator"
+          },
+          {
+            "class_id": "MINI_EXCAVATOR",
+            "name_ru": "Мини-экскаватор",
+            "name_en": "Mini excavator"
+          }
+        ],
+        "detector_classes": [
+          {
+            "class_id": "bulldozer",
+            "name_ru": "Бульдозер",
+            "name_en": "Bulldozer"
+          },
+          {
+            "class_id": "dump_truck",
+            "name_ru": "Самосвал",
+            "name_en": "Dump truck"
+          },
+          {
+            "class_id": "excavator",
+            "name_ru": "Экскаватор",
+            "name_en": "Excavator"
+          }
+        ],
+        "source": {
+          "sheet": "Лист1",
+          "row": 47,
+          "cell": "B47",
+          "context": [
+            "Устройство подземной части"
+          ],
+          "applicability_marks": {
+            "Жильё": "˅",
+            "Образование": "˅",
+            "Здравоохранение": "˅",
+            "Спорт": "˅",
+            "Культура": "˅",
+            "Административные здания": "˅",
+            "ДОУ": "˅",
+            "Офисно-деловой центр": "˅",
+            "Дороги": "˅"
+          }
+        },
+        "row_kind": "ITEM",
+        "macro_stage": "EARTHWORKS",
+        "applicable_object_types": [
+          "Жильё",
+          "Образование",
+          "Здравоохранение",
+          "Спорт",
+          "Культура",
+          "Административные здания",
+          "ДОУ",
+          "Офисно-деловой центр",
+          "Дороги"
+        ],
+        "requirement_status": "CONDITIONAL_ON_METHOD",
+        "required_equipment": [],
+        "conditional_required_equipment": [
+          {
+            "requirement_id": "work_047_r01",
+            "relation": "CONDITIONAL",
+            "functional_equipment_id": "EXCAVATOR",
+            "equipment_name": "Экскаватор",
+            "equipment_name_ru": "Экскаватор",
+            "equipment_name_en": "Excavator",
+            "one_of": [
+              "EXCAVATOR",
+              "MINI_EXCAVATOR"
+            ],
+            "phase": "Разработка и погрузка грунта",
+            "when": {
+              "excavation_method": "excavator"
+            },
+            "condition": "При экскаваторной схеме разработки грунта.",
+            "rationale": "Функциональная потребность выводится из названной операции; конкретный комплект выбирают по технологии.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "alternatives_exhaustive": false,
+            "evidence_scope": "FUNCTIONAL_PRINCIPLE; option evidence is in equipment_relations",
+            "alternative_selection": "REQUIRES_PROJECT_VALIDATION"
+          },
+          {
+            "requirement_id": "work_047_r02",
+            "relation": "CONDITIONAL",
+            "functional_equipment_id": "DUMP_TRUCK",
+            "equipment_name": "Самосвал",
+            "equipment_name_ru": "Самосвал",
+            "equipment_name_en": "Dump truck",
+            "one_of": [
+              "DUMP_TRUCK"
+            ],
+            "phase": "Вывоз грунта",
+            "when": {
+              "soil_transport": "dump_truck_haulage"
+            },
+            "condition": "При вывозе грунта самосвалами; окно наблюдения учитывает оборот транспорта.",
+            "rationale": "Функциональная потребность выводится из названной операции; конкретный комплект выбирают по технологии.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "alternatives_exhaustive": false,
+            "evidence_scope": "FUNCTIONAL_PRINCIPLE; option evidence is in equipment_relations",
+            "alternative_selection": "REQUIRES_PROJECT_VALIDATION"
+          }
+        ],
+        "possible_equipment": [
+          {
+            "equipment_id": "BULLDOZER",
+            "equipment_name": "Бульдозер",
+            "equipment_name_ru": "Бульдозер",
+            "equipment_name_en": "Bulldozer",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Бульдозер"
+          },
+          {
+            "equipment_id": "DEWATERING_PUMP",
+            "equipment_name": "Водоотливной насос",
+            "equipment_name_ru": "Водоотливной насос",
+            "equipment_name_en": "Dewatering pump",
+            "relation": "MAY_USE",
+            "condition": "При притоке воды и принятом открытом водоотливе; насос может быть вне обзора камеры.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Водоотливной насос"
+          },
+          {
+            "equipment_id": "DUMP_TRUCK",
+            "equipment_name": "Самосвал",
+            "equipment_name_ru": "Самосвал",
+            "equipment_name_en": "Dump truck",
+            "relation": "MAY_USE",
+            "condition": "Автомобильная доставка или вывоз сыпучего материала; при складировании на участке или другом транспорте может не применяться. Либо: При вывозе грунта самосвалами; окно наблюдения учитывает оборот транспорта.",
+            "evidence_level": "MIXED_REFERENCE_AND_EXPERT_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "source_equipment_text": "Самосвал"
+          },
+          {
+            "equipment_id": "EXCAVATOR",
+            "equipment_name": "Экскаватор",
+            "equipment_name_ru": "Экскаватор",
+            "equipment_name_en": "Excavator",
+            "relation": "MAY_USE",
+            "condition": "Открытая механизированная разработка или перемещение грунта; не распространяется на закрытый монтаж и все бестраншейные методы. Либо: При экскаваторной схеме разработки грунта.",
+            "evidence_level": "MIXED_REFERENCE_AND_EXPERT_INFERENCE",
+            "source_ids": [
+              "earthmoving"
+            ],
+            "source_equipment_text": "Экскаватор"
+          },
+          {
+            "equipment_id": "MINI_EXCAVATOR",
+            "equipment_name": "Мини-экскаватор",
+            "equipment_name_ru": "Мини-экскаватор",
+            "equipment_name_en": "Mini excavator",
+            "relation": "MAY_USE",
+            "condition": "При экскаваторной схеме разработки грунта.",
+            "evidence_level": "EXPERT_INFERENCE",
+            "source_ids": []
+          }
+        ],
+        "review_notes": [
+          "Требования ограничены указанной технологией и активной фазой; наличие техники не доказывает выполнение всей строки."
+        ],
+        "cctv": {
+          "requires_project_configuration": true,
+          "automatic_absence_alert_enabled": false,
+          "reason": "Требуются метод, активная фаза, зона, интервал наблюдения и проверка видимости всех альтернатив.",
+          "candidate_detector_classes": [
+            "bulldozer",
+            "dump_truck",
+            "excavator"
+          ],
+          "external_view_limitation": "Наблюдение требует обзора зоны разработки."
+        }
+      },
+      {
+        "work_id": "work_068",
+        "work_name": "Уплотнение грунта",
+        "canonical_work_name": "Уплотнение грунта",
+        "equipment_classes": [
+          {
+            "class_id": "MANUAL_TAMPER",
+            "name_ru": "Ручная трамбовка",
+            "name_en": "Hand tamper"
+          },
+          {
+            "class_id": "PLATE_COMPACTOR",
+            "name_ru": "Виброплита",
+            "name_en": "Vibratory plate compactor"
+          },
+          {
+            "class_id": "ROAD_ROLLER",
+            "name_ru": "Каток",
+            "name_en": "Road roller"
+          },
+          {
+            "class_id": "SOIL_COMPACTION_EQUIPMENT",
+            "name_ru": "Оборудование уплотнения грунта или основания",
+            "name_en": "Soil or base course compaction equipment"
+          },
+          {
+            "class_id": "SOIL_ROLLER",
+            "name_ru": "Грунтовый каток",
+            "name_en": "Soil compaction roller"
+          },
+          {
+            "class_id": "VIBRATORY_RAMMER",
+            "name_ru": "Вибротрамбовка",
+            "name_en": "Vibratory rammer"
+          }
+        ],
+        "detector_classes": [
+          {
+            "class_id": "roller",
+            "name_ru": "Каток",
+            "name_en": "Roller"
+          }
+        ],
+        "source": {
+          "sheet": "Лист1",
+          "row": 68,
+          "cell": "B68",
+          "context": [
+            "Устройство подземной части",
+            "Земляные работы"
+          ],
+          "applicability_marks": {
+            "Жильё": "",
+            "Образование": "˅",
+            "Здравоохранение": "˅",
+            "Спорт": "˅",
+            "Культура": "˅",
+            "Административные здания": "˅",
+            "ДОУ": "˅",
+            "Офисно-деловой центр": "˅",
+            "Дороги": "˅"
+          }
+        },
+        "row_kind": "ITEM",
+        "macro_stage": "EARTHWORKS",
+        "applicable_object_types": [
+          "Образование",
+          "Здравоохранение",
+          "Спорт",
+          "Культура",
+          "Административные здания",
+          "ДОУ",
+          "Офисно-деловой центр",
+          "Дороги"
+        ],
+        "requirement_status": "FUNCTIONAL_REQUIREMENT_IDENTIFIED",
+        "required_equipment": [
+          {
+            "requirement_id": "work_068_r01",
+            "relation": "REQUIRES",
+            "functional_equipment_id": "SOIL_COMPACTION_EQUIPMENT",
+            "equipment_name": "Оборудование уплотнения грунта или основания",
+            "equipment_name_ru": "Оборудование уплотнения грунта или основания",
+            "equipment_name_en": "Soil or base course compaction equipment",
+            "one_of": [
+              "SOIL_ROLLER",
+              "ROAD_ROLLER",
+              "PLATE_COMPACTOR",
+              "VIBRATORY_RAMMER",
+              "MANUAL_TAMPER"
+            ],
+            "phase": "Уплотнение слоя",
+            "when": {},
+            "condition": "При выполнении указанной операции на данном участке.",
+            "rationale": "Необходима функция уплотнения. Выбор механизма зависит от материала, толщины слоя и доступа; ручная трамбовка для малых участков — экспертная альтернатива, не утверждение источника.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "soil_compaction"
+            ],
+            "alternatives_exhaustive": false,
+            "evidence_scope": "FUNCTIONAL_PRINCIPLE; option evidence is in equipment_relations",
+            "alternative_selection": "REQUIRES_PROJECT_VALIDATION"
+          }
+        ],
+        "conditional_required_equipment": [],
+        "possible_equipment": [
+          {
+            "equipment_id": "MANUAL_TAMPER",
+            "equipment_name": "Ручная трамбовка",
+            "equipment_name_ru": "Ручная трамбовка",
+            "equipment_name_en": "Hand tamper",
+            "relation": "MAY_USE",
+            "condition": "При выполнении указанной операции на данном участке.",
+            "evidence_level": "EXPERT_INFERENCE",
+            "source_ids": []
+          },
+          {
+            "equipment_id": "PLATE_COMPACTOR",
+            "equipment_name": "Виброплита",
+            "equipment_name_ru": "Виброплита",
+            "equipment_name_en": "Vibratory plate compactor",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода. Либо: При выполнении указанной операции на данном участке.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Виброплита"
+          },
+          {
+            "equipment_id": "ROAD_ROLLER",
+            "equipment_name": "Каток",
+            "equipment_name_ru": "Каток",
+            "equipment_name_en": "Road roller",
+            "relation": "MAY_USE",
+            "condition": "При выполнении указанной операции на данном участке.",
+            "evidence_level": "PRIMARY_REFERENCE_SUPPORTED_INFERENCE",
+            "source_ids": [
+              "soil_compaction"
+            ]
+          },
+          {
+            "equipment_id": "SOIL_ROLLER",
+            "equipment_name": "Грунтовый каток",
+            "equipment_name_ru": "Грунтовый каток",
+            "equipment_name_en": "Soil compaction roller",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода. Либо: При выполнении указанной операции на данном участке.",
+            "evidence_level": "MIXED_REFERENCE_AND_EXPERT_INFERENCE",
+            "source_ids": [
+              "soil_compaction"
+            ],
+            "source_equipment_text": "Грунтовый каток"
+          },
+          {
+            "equipment_id": "VIBRATORY_RAMMER",
+            "equipment_name": "Вибротрамбовка",
+            "equipment_name_ru": "Вибротрамбовка",
+            "equipment_name_en": "Vibratory rammer",
+            "relation": "MAY_USE",
+            "condition": "Возможная механизация указанной работы; необходимость зависит от объема, доступа и принятого метода. Либо: При выполнении указанной операции на данном участке.",
+            "evidence_level": "SOURCE_JSON_EXPERT_INFERENCE",
+            "source_ids": [],
+            "source_equipment_text": "Вибротрамбовка"
+          }
+        ],
+        "review_notes": [
+          "Требования ограничены указанной технологией и активной фазой; наличие техники не доказывает выполнение всей строки."
+        ],
+        "cctv": {
+          "requires_project_configuration": true,
+          "automatic_absence_alert_enabled": false,
+          "reason": "Требуются метод, активная фаза, зона, интервал наблюдения и проверка видимости всех альтернатив.",
+          "candidate_detector_classes": [
+            "roller"
+          ],
+          "external_view_limitation": "Ручная трамбовка возможна на малых участках; достигнутая плотность не видна."
+        }
+      }
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "reviewed_on": "2026-09-18",
+    "statistics": {
+      "total_works": 377,
+      "works_with_benchmark": 134,
+      "works_without_numeric_benchmark": 243,
+      "benchmark_profiles": 66,
+      "work_benchmark_links": 147,
+      "sources": 41,
+      "old_sources_reviewed": 18,
+      "verified_population_means": 0,
+      "sources_with_numeric_examples": 27,
+      "works_with_direct_scenario": 34,
+      "works_with_only_partial_analogy": 100,
+      "prior_integer_midpoints": 230
+    },
+    "input_files": [
+      {
+        "path": "rnd/store/data_src/7.ДГП_датасеты/Сводный перечень строительных работ_ЛТЦ.xlsx",
+        "sha256": "82beeb771b5d24bd3fc7323a34f35808dce0c3f396498303a3dd9b9d7f860e3a"
+      },
+      {
+        "path": "rnd/store/data_by_gen_ai/construction_work_duration_benchmarks_ru.xlsx",
+        "sha256": "29c8a3e40b585b534b7bb73218cf0f0c3b71836b1389cbb6d8d2bf93d5dd5dee"
+      }
+    ],
+    "methodology": {
+      "Назначение": "Справочник длительностей для примеров, не календарный план объекта. Названия и номера всех 377 строк сохранены.",
+      "Что в колонке B": "Среднее диапазона, прямое время примера, расчёт либо верхняя граница. Тип явно указан в колонках E/H. Это разные виды свидетельств.",
+      "Статистическое среднее": "Среднего по репрезентативной выборке объектов не установлено ни для одной строки. Середина диапазона не является таким средним.",
+      "Покрытие": "134 работ имеют конкретный пример/аналог; 243 без подтверждённого числового ориентира. Частичный пример не подтверждает полный этап.",
+      "Неподтверждённые оценки": "Первоначальные значения сохранены в листе «Сравнение» с исходными ссылками. В лист «Сроки» они не подмешаны. Пустое значение не означает нулевую длительность.",
+      "Источники": "Лист «Источники» содержит проверенный тезис и способ доступа. «Поисковый индекс» означает, что полный текст страницы не был доступен; уверенность ниже.",
+      "Архивные нормы": "ЕНиР используются как исторические нормы трудоёмкости для расчётного примера. Они не представлены как действующие обязательные требования в 2026 году.",
+      "МРР": "Предельно допустимые сроки для конкретных условий. Не средние и не универсальные нормы переноса действующих коммуникаций.",
+      "Расчёт по труду": "Рабочие дни = объём × чел.-ч на единицу / (работники в смену × часов в смене × смен в день). Состав и 8-часовая смена явно заданы.",
+      "Расчёт по машине": "Рабочие дни = объём × маш.-ч на единицу / (количество машин × часов в смене × смен в день). Чел.-ч и маш.-ч не складываются.",
+      "Единицы": "Часы, рабочие дни, смены и календарные сутки не взаимозаменяемы. Для недель использованы 7 суток; для месяцев 30 суток — отдельное условное допущение.",
+      "Дробные дни": "Доля рабочего дня — расчётное время операции. В графике может потребоваться целая смена, мобилизация, перерыв или технологическое ожидание.",
+      "Интервалы": "Нижняя/верхняя граница — диапазон источника или преобразованной производительности. Это не статистический доверительный интервал.",
+      "Несколько примеров": "Основной лист показывает первый ориентир: выбранный вариант приоритетнее частичного аналога, длительность приоритетнее предела. Все альтернативы перечислены в «Связях» и «Бенчмарках». Их нельзя автоматически усреднять или складывать.",
+      "Ссылки без чисел": "При статусе «Не подтверждено» ссылка ведёт на общую методику МДС, которая не подтверждает конкретный срок. Это не результат отдельного поиска для каждой из 377 строк.",
+      "Сводные разделы": "Длительность получают из зависимостей и критического пути дочерних работ; сумма их длительностей обычно неверна.",
+      "Границы этапа": "Часть операции, пример квартиры, одного окна или 100 м сети не заменяет срок всех работ по зданию. Проверяйте колонки «Объём» и «Применимость».",
+      "Паузы": "Выдержка бетона, высыхание материалов, испытания, уход за посадками, поставка и согласования включены только при явном указании.",
+      "Мониторинг по камерам": "Эти ориентиры не являются основанием автоматического сообщения о срыве срока. Нужны утверждённые объёмы, календарь, зоны и фактический старт операции.",
+      "Дата проверки": "2026-09-18",
+      "Исходный перечень": "rnd/store/data_src/7.ДГП_датасеты/Сводный перечень строительных работ_ЛТЦ.xlsx",
+      "SHA256 перечня": "82beeb771b5d24bd3fc7323a34f35808dce0c3f396498303a3dd9b9d7f860e3a",
+      "Первоначальная база": "rnd/store/data_by_gen_ai/construction_work_duration_benchmarks_ru.xlsx",
+      "SHA256 первоначальной базы": "29c8a3e40b585b534b7bb73218cf0f0c3b71836b1389cbb6d8d2bf93d5dd5dee"
+    },
+    "sources": [
+      {
+        "id": "MRR",
+        "title": "МРР 3.2.81-12. Сборник 11.3. Продолжительность строительства",
+        "url": "https://meganorm.ru/Data2/1/4293784/4293784462.htm",
+        "kind": "Рекомендации, предельно допустимые сроки",
+        "locator": "Пп. 4.1–4.4, 4.15, 9.1; таблицы 17, 19–22",
+        "finding": "Нормативные пределы для заданных объектов и условий; не статистические средние. Реконструкция и перенос коммуникаций имеют отдельные ограничения.",
+        "access": "Полный текст",
+        "publication": "2012",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "MDS",
+        "title": "МДС 12-43.2008. Нормирование продолжительности строительства",
+        "url": "https://meganorm.ru/mega_doc/norm/mds_metodicheskij-dokument/0/mds_12-43_2008_metodicheskaya_dokumentatsiya_v_stroitelstve.html",
+        "kind": "Методика расчёта",
+        "locator": "Пп. 3.1–3.3, 3.7–3.8",
+        "finding": "Длительность зависит от объёмов, ресурсов, сменности и совмещения работ. Не обосновывает универсальные интервалы из исходной таблицы.",
+        "access": "Полный текст",
+        "publication": "2008",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "MONO_DETAIL",
+        "title": "ПМ Приоритет МонолитСтрой — состав работ и цикл захватки",
+        "url": "https://monolit-stroi.site/uslugi/",
+        "kind": "Заявление подрядчика",
+        "locator": "Раздел «Как считаем срок»",
+        "finding": "Один цикл: 0,5 + 2 + 2 + 1 + 3 + 1 = 9,5 суток; этаж до 600 м². Численность не указана. Выдержка не универсальна.",
+        "access": "Полный текст",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E2",
+        "title": "ЕНиР Е2-1. Земляные работы",
+        "url": "https://meganorm.ru/mega_doc/norm/enir_edinye-normy-i-rascenki/0/enir_edinye_normy_i_rastsenki_na_stroitelnye_montazhnye_i_276.html",
+        "kind": "Архивные нормы труда и машинного времени",
+        "locator": "§ Е2-1-11, таблица 3, строка 5б; § Е2-1-31, таблица 3; § Е2-1-34; § Е2-1-35",
+        "finding": "Разработка котлована: 2,9 маш.-ч/100 м³, ковш 0,6–0,65 м³, II группа, с погрузкой. Уплотнение: 1,3 маш.-ч/1000 м² за 4 прохода. Засыпка ДЗ-8: 0,43 маш.-ч/100 м³ до 5 м, II группа. Грубая планировка ДЗ-8: 0,29 маш.-ч/1000 м² за проход.",
+        "access": "Полный текст",
+        "publication": "1986, редакция 1990; архив, не действующее обязательное требование",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E4",
+        "title": "ЕНиР Е4-1. Здания и промышленные сооружения",
+        "url": "https://meganorm.ru/Data2/1/4294854/4294854144.htm",
+        "kind": "Архивные нормы труда",
+        "locator": "§ Е4-1-49, таблицы 1–4",
+        "finding": "Нормируется укладка и виброуплотнение смеси двумя бетонщиками, а не полный монолитный цикл. Фундамент объёмом до 10 м³: 0,33 чел.-ч/м³; колонны 301–500 мм: 1,5; лестничные марши: 4,5.",
+        "access": "Полный текст",
+        "publication": "1986; архивный ориентир",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E17",
+        "title": "ЕНиР Е17. Строительство автомобильных дорог",
+        "url": "https://meganorm.ru/Data2/1/4294854/4294854121.htm",
+        "kind": "Архивные нормы труда и машинного времени",
+        "locator": "§ Е17-43, 45, 47, 50, 51а, 56",
+        "finding": "Бордюр ≤150 мм: 0,62 чел.-ч/м, 4 рабочих. Знак ≤1 м на готовой опоре: 0,52 чел.-ч, 2 рабочих. Разметка: 0,38 маш.-ч/км. Плиты ≤0,65 м² с песком в швах: 0,36 чел.-ч/м².",
+        "access": "Полный текст",
+        "publication": "1986 с изменениями 1990; архивный ориентир",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SANDWICH",
+        "title": "МАКСТИЛ — монтаж сэндвич-панелей",
+        "url": "https://lstkmk.ru/knowledge/montazh-sendvich-panelej/",
+        "kind": "Заявленная производительность подрядчика",
+        "locator": "FAQ: сколько панелей монтируют за смену",
+        "finding": "4 монтажника: 100–150 м² стеновых панелей за смену. Подготовка, кровля и доборы выделены отдельно.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E19",
+        "title": "ЕНиР Е19. Устройство полов, часть 3",
+        "url": "https://www.rmnt.ru/docs/cat_enir/25583.details3.htm",
+        "kind": "Архивные нормы труда",
+        "locator": "§ Е19-32, 36, 38, 39, 43; техническая часть главы 6",
+        "finding": "Для пола 100 м²: песчаная прослойка 10,5 чел.-ч; бетон ≤100 мм с вибрацией 7,5; щебень ≤100 мм 15. Стяжка по бетону 23 чел.-ч/100 м², 3 рабочих. Материал доставлен на рабочее место.",
+        "access": "Полный текст",
+        "publication": "1986; архивный ориентир",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SKUD",
+        "title": "ООО Ориентир — сроки монтажа СКУД",
+        "url": "https://msc01.ru/uslugi/skud",
+        "kind": "Заявление монтажной организации",
+        "locator": "FAQ: сколько времени занимает монтаж СКУД",
+        "finding": "Одна-две двери: 1–2 дня; офис с турникетом и десятью дверями — около недели; сетевая система здания с интеграциями — 2–4 недели.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Обновлено 25.08.2026",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "APS",
+        "title": "Горизонт-М — монтаж пожарной сигнализации",
+        "url": "https://01gorizont.ru/montazh-pozharnoy-signalizacii.php",
+        "kind": "Заявление монтажной организации",
+        "locator": "FAQ: сколько длится монтаж",
+        "finding": "Одно помещение до 300 м²: 3–5 рабочих дней. Объект 1000–3000 м²: 2–4 недели. По готовому проекту, включая монтаж и пусконаладку.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E3",
+        "title": "ЕНиР Е3. Каменные работы",
+        "url": "https://www.rmnt.ru/docs/cat_enir/25575.htm",
+        "kind": "Архивные нормы труда",
+        "locator": "§ Е3-2; § Е3-3, таблица 3, строка 1б",
+        "finding": "Кирпичная стена в 1 кирпич с проёмами под штукатурку: 3,7 чел.-ч/м³. Горизонтальная изоляция 2 слоя: 8,3 чел.-ч/100 м².",
+        "access": "Полный текст",
+        "publication": "1986; архивный ориентир",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E7",
+        "title": "ЕНиР Е7. Кровельные работы",
+        "url": "https://meganorm.ru/mega_doc/norm/enir_edinye-normy-i-rascenki/0/enir_edinye_normy_i_rastsenki_na_stroitelnye_montazhnye_i_92.html",
+        "kind": "Архивные нормы труда",
+        "locator": "§ Е7-2; § Е7-13; § Е7-14, строка 20; § Е7-15, строка 7",
+        "finding": "Наплавление: 4,8 чел.-ч/100 м² слоя; рулонная пароизоляция: 6,7; минвата до 150 мм: 5; стяжка до 25 мм по плитному утеплителю: 13,5.",
+        "access": "Полный текст",
+        "publication": "1986; на странице указана утрата силы с 01.01.2021",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E8",
+        "title": "ЕНиР Е8-1. Отделочные работы",
+        "url": "https://meganorm.ru/Data2/1/4294854/4294854134.htm",
+        "kind": "Архивные нормы труда",
+        "locator": "§ Е8-1-15, таблица 5 строка 21; таблица 6 строка 1",
+        "finding": "Водоэмульсионное окрашивание валиком: стены 4,9, потолки 6 чел.-ч/100 м². Один слой шпатлёвки: стены 11,5, потолки 17,5. Подготовка и сушка отдельно.",
+        "access": "Полный текст",
+        "publication": "1986 с изменениями; архивный ориентир",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "E18",
+        "title": "ЕНиР Е18. Зелёное строительство",
+        "url": "https://meganorm.ru/mega_doc/norm/enir_edinye-normy-i-rascenki/0/enir_edinye_normy_i_rastsenki_na_stroitelnye_montazhnye_i_280.html",
+        "kind": "Архивные нормы труда",
+        "locator": "§ Е18-21, таблицы 1 и 4; § Е18-24, таблица 2; § Е18-25, строки 2, 3",
+        "finding": "На 100 единиц: лиственные саженцы в готовые ямы 28 чел.-ч; кусты 7,6; посев 100 м² 1,3; разметка и посадка 100 летников 0,05 + 0,47.",
+        "access": "Полный текст",
+        "publication": "1986; архивный ориентир",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "KNAUF",
+        "title": "МДС 81-39.2005, том 1. Карты систем КНАУФ",
+        "url": "https://meganorm.ru/Data1/45/45907/index.htm",
+        "kind": "Типовые технологические карты",
+        "locator": "С111 и П112: раздел 4, таблица 4.3",
+        "finding": "С111: 1,02 чел.-ч/м² по графику, 2 монтажника. П112: 0,94 чел.-ч/м², 2 монтажника. Время на 1 м², не на помещение.",
+        "access": "Полный текст",
+        "publication": "2005",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FACADE_TK",
+        "title": "ТК 23. Вентилируемый фасад с композитными панелями",
+        "url": "https://meganorm.ru/Data2/1/4293850/4293850411.htm",
+        "kind": "Типовая технологическая карта",
+        "locator": "Раздел 6, таблица 4, строка 3",
+        "finding": "Основной монтаж 600 м² — 2400 чел.-ч, или 4 чел.-ч/м². Перестановки люлек и переноска материалов считаются отдельно.",
+        "access": "Полный текст",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "WATER_TK",
+        "title": "97-04 ТК. Вертикальная оклеечная гидроизоляция гидроизолом",
+        "url": "https://meganorm.ru/Data2/1/4293835/4293835194.pdf",
+        "kind": "Технологическая карта ПКТИпромстрой",
+        "locator": "Лист 31, таблица 6, строки 5–6",
+        "finding": "На 100 м²: первый слой 19, второй 17,1 чел.-ч; звено 3 человека. В таблице также есть третий слой; полный итог нельзя переносить на двухслойную операцию.",
+        "access": "Полный текст",
+        "publication": "2007, второе издание",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "ASPHALT_TK",
+        "title": "ТТК АГНКС №76. Верхний слой асфальтобетонного покрытия",
+        "url": "https://perekos.net/default/download/page_files.file.b04881903be808a5.6b63344a763553524669746748464e2e706466.pdf",
+        "kind": "Типовая технологическая карта",
+        "locator": "Разделы VII–VIII, п. 8.3, таблица 8; PDF стр. 37",
+        "finding": "4426 м², слой 4 см; опубликовано 3,6 смены, 13 исполнителей (5 рабочих и 8 машинистов). Таблица затрат имеет арифметические несогласованности; срок приведён как значение автора.",
+        "access": "Полный текст",
+        "publication": "Нормативная база на 01.01.2016",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "LIFTS",
+        "title": "СМК-ЛИФТ — сроки монтажа",
+        "url": "https://smk-lift.ru/uslugi/montazh-liftov-eskalatorov-podemnikov",
+        "kind": "Заявление подрядчика",
+        "locator": "Таблица «Сроки монтажа различных типов оборудования»",
+        "finding": "Пассажирский лифт до 9 этажей: 20–25 рабочих дней; поэтажный эскалатор: 15–20; платформа МГН: 7–10. Не для тоннельных эскалаторов.",
+        "access": "Полный текст",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "WINDOW",
+        "title": "Фабрика окон — окна ПВХ",
+        "url": "https://www.fabrikaokon.ru/okna.html",
+        "kind": "Заявление производителя",
+        "locator": "FAQ: сколько времени занимает установка",
+        "finding": "Для одного окна заявлено 2–3 часа. Изготовление, доставка и монтаж — разные сроки.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "DOORS",
+        "title": "Install Doors — сроки установки дверей",
+        "url": "https://install-doors.ru/",
+        "kind": "Заявление монтажной организации",
+        "locator": "FAQ: сколько времени занимает установка",
+        "finding": "Стандартный проём: входная дверь 1,5–2 часа; межкомнатная 2–3 часа. Специальные двери не охвачены.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "CCTV",
+        "title": "СКУДов — установка видеонаблюдения",
+        "url": "https://skudov.net/videonablyudeniye/ustanovka-videonablyudeniya-pod-klyuch-etapy-czeny-garantiya/",
+        "kind": "Заявление монтажной организации",
+        "locator": "Раздел «Сколько времени занимает установка»",
+        "finding": "2–4 камеры в небольшом офисе: 1 день; 4–8 камер на частном доме с периметром: 1–2 дня. Аналог для небольшого участка; не подтверждает требования 299-ПП и ЕЦХД.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "PILE_CASE",
+        "title": "СТРОЙМАТИК — СГК-320, реальный кейс",
+        "url": "https://stroimatic.com/svaebojnaya-ustanovka-sgk-320-rabota-bez-lidernogo-bureniya-realnyj-kejs/",
+        "kind": "Кейс производителя",
+        "locator": "Реальный кейс: Московская область",
+        "finding": "30 железобетонных свай длиной 5 м погружены за одну рабочую смену. Не включает ростверк.",
+        "access": "Поисковый индекс страницы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "BORED",
+        "title": "АСПО — С.А. Осокин. Актуальные вопросы свайного фундаментостроения",
+        "url": "https://aspo-spb.ru/images/files/49-seminar/3_Osokin-Aktualniye_voprosi_svainogo_fundamentostroeniya.pdf",
+        "kind": "Отраслевой доклад",
+        "locator": "Слайд о бурении под бентонитовым раствором",
+        "finding": "Для свай диаметром до 600 мм указано 50–150 пог. м за смену. Применимо к этой технологии, не к любым буроинъекционным сваям.",
+        "access": "Поисковый индекс PDF",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SHEETPILE",
+        "title": "А.В. Требубов, ГидроПромСтрой. Берегоукрепительные работы",
+        "url": "https://hydroteh.ru/upload/journals/files/hydro_04_2013_file_pdf_55_1_2816.pdf",
+        "kind": "Статья практикующего подрядчика",
+        "locator": "Раздел о вибрационном погружении",
+        "finding": "Указана возможная производительность 15 т шпунта за смену. Это технологический пример, не среднее для любого котлована.",
+        "access": "Поисковый индекс PDF",
+        "publication": "2013",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SP70",
+        "title": "СП 70.13330.2012 «Несущие и ограждающие конструкции»",
+        "url": "https://meganorm.ru/mega_doc/norm/akt_forma/0/sp_70_13330_2012_svod_pravil_nesushchie_i_ograzhdayushchie.html",
+        "kind": "СП",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Ссылка не обосновывает назначенные интервалы монтажа конструкций; прочность не равна фиксированным 3/7/28 суткам.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SP78",
+        "title": "СП 78.13330.2012 «Автомобильные дороги»",
+        "url": "https://meganorm.ru/mega_doc/norm/metodika/0/sp_78_13330_2012_svod_pravil_avtomobilnye_dorogi.html",
+        "kind": "СП",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Назначенные всем дорожным операциям интервалы не подтверждены конкретным пунктом.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SP82",
+        "title": "СП 82.13330.2016 «Благоустройство территорий»",
+        "url": "https://meganorm.ru/mega_doc/norm_update_29032025/klassifikaciya/0/sp_82_13330_2016_svod_pravil_blagoustroystvo_territoriy.html",
+        "kind": "СП",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Сезон посадки не равен длительности работы бригады.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "SP325",
+        "title": "СП 325.1325800.2017 — демонтаж и утилизация",
+        "url": "https://base.garant.ru/403690580/",
+        "kind": "СП",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Интервалы 15–45 дней не переподтверждены; недоступность не означает отсутствие нормы.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FDEMO",
+        "title": "DWG.ru — продолжительность работ по демонтажу",
+        "url": "https://forum.dwg.ru/showthread.php?t=102737",
+        "kind": "Профессиональный форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Универсальный коэффициент и срок не приняты без точного содержания и области применения.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FEXC",
+        "title": "FORUMHOUSE — опыт разработки котлованов экскаватором",
+        "url": "https://www.forumhouse.ru/threads/109152/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "В просмотренной странице 1–3 смены не обнаружены; простои в ожидании машины не являются временем разработки. Числа не приняты.",
+        "access": "Просмотрена часть темы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "MONO",
+        "title": "ПМ Строй — монолитный каркас",
+        "url": "https://monolit-stroi.site/",
+        "kind": "Отраслевой подрядчик",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "На /uslugi/ проверен цикл 9,5 суток. Нельзя назначать его мостовому полотну или всему зданию.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FSLAB",
+        "title": "FORUMHOUSE — сравнение сборного и монолитного перекрытия",
+        "url": "https://www.forumhouse.ru/threads/151622/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Обнаружены четыре дня операций и два рабочих; прибавка трёх дней твердения и перенос на другие конструкции не подтверждены.",
+        "access": "Поисковый индекс",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FWALL",
+        "title": "FORUMHOUSE — дом из ЖБ плит, сроки стен",
+        "url": "https://www.forumhouse.ru/threads/346722/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "На просмотренной странице обсуждают весь дом и иные масштабы. 1–3 недели на любую кладку не обоснованы.",
+        "access": "Просмотрена часть темы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FFACADE",
+        "title": "FORUMHOUSE — трудозатраты на виды работ, мокрый фасад",
+        "url": "https://www.forumhouse.ru/threads/268033/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Индекс подтверждает 528 м² менее чем за месяц. Ровно 28 дней и диапазон 14–28 не следуют из этого. Только мокрый фасад.",
+        "access": "Поисковый индекс",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FINTER",
+        "title": "FORUMHOUSE — последовательность ремонта новой квартиры",
+        "url": "https://www.forumhouse.ru/threads/22824/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Квартирные операции подтверждены; нельзя переносить на весь комплекс сетей/отделки здания.",
+        "access": "Поисковый индекс",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FROOF",
+        "title": "FORUMHOUSE — опыт работ по кровле",
+        "url": "https://www.forumhouse.ru/threads/351985/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Универсальный срок кровельных элементов снят; недоступность не доказывает ложность частного рассказа.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "FFOUND",
+        "title": "FORUMHOUSE — готовность фундамента из ФБС",
+        "url": "https://www.forumhouse.ru/threads/302410/",
+        "kind": "Форум",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Сроки монолитного фундамента не подтверждены ссылкой на ФБС.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "TBM",
+        "title": "Стройкомплекс Москвы — средняя скорость ТПМК",
+        "url": "https://stroi.mos.ru/articles/fiztiekh-kakoi-staniet-koniechnaia-stantsiia-liublinsko-dmitrovskoi-linii-mietro",
+        "kind": "Официальный городской портал",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "250–300 м/месяц; 10–12 суток на 100 м лишь при условном 30-дневном месяце.",
+        "access": "Поисковый индекс",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "TBMASS",
+        "title": "Стройкомплекс Москвы — монтаж ТПМК",
+        "url": "https://stroi.mos.ru/news/otkryto-dvizhieniie-miezhdu-stantsiiami-mietro-univiersitiet-i-iugho-zapadnaia",
+        "kind": "Официальный городской портал",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Экономия одного месяца при сборке не означает общую длительность 30–60 суток.",
+        "access": "Поисковый индекс",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      },
+      {
+        "id": "VNIR",
+        "title": "ВНиР В3, выпуск 5 — верхнее строение путей в подземных условиях",
+        "url": "https://meganorm.ru/mega_doc/norm/vnir_vedomstvennye-normy-i-rascenki/0/vnir_vedomstvennye_normy_i_rastsenki_na_stroitelnye_84.html",
+        "kind": "Ведомственные нормы времени",
+        "locator": "См. аудит первоначальной базы",
+        "finding": "Без номера таблицы, состава звена и объёма 5–15/7–21 день нельзя считать проверенными.",
+        "access": "См. аудит первоначальной базы",
+        "publication": "Дата публикации не указана",
+        "checked_on": "2026-09-18"
+      }
+    ],
+    "benchmarks": [
+      {
+        "id": "soil_compact",
+        "title": "Уплотнение 1000 м² грунта",
+        "source_id": "E2",
+        "low": 0.1625,
+        "high": 0.1625,
+        "unit": "рабочих дней по 8 часов",
+        "basis": "Расчёт по архивной норме",
+        "scope": "1000 м² поверхности, 4 прохода; длина гона до 100 м",
+        "resources": "Каток ДУ-31А, 1 машинист, 1 смена/день",
+        "formula": "1,3 маш.-ч / 8 = 0,1625",
+        "limits": "Без доставки грунта, послойной укладки и лабораторного контроля; не норма уплотнения щебня.",
+        "value_kind": "Расчёт для заданного объёма",
+        "value": 0.1625
+      },
+      {
+        "id": "excavate1000",
+        "title": "Разработка 1000 м³ котлована с погрузкой",
+        "source_id": "E2",
+        "low": 3.625,
+        "high": 3.625,
+        "unit": "рабочих дней по 8 часов",
+        "basis": "Расчёт по архивной норме",
+        "scope": "1000 м³, II группа грунта, глубина до 3 м",
+        "resources": "Механическая обратная лопата, ковш с зубьями 0,6–0,65 м³; 1 машинист, 1 смена/день",
+        "formula": "§ Е2-1-11, табл. 3, 5б: 1000/100×2,9/8 = 3,625",
+        "limits": "Только разработка с погрузкой. Самосвалы должны подаваться без задержек; перевозка, крепления, водоотлив и ручная зачистка отдельно.",
+        "value_kind": "Расчёт для заданного объёма",
+        "value": 3.625
+      }
+    ],
+    "works": [
+      {
+        "work_id": "work_004",
+        "excel_row": 4,
+        "work_name": "Подготовка территории",
+        "row_kind": "AGGREGATE",
+        "context": [
+          "Подготовка территории"
+        ],
+        "benchmarks": [],
+        "verified_population_mean": null,
+        "review": "Сводный раздел: оценка всего этапа без состава и сетевого графика не подтверждена. Исходное число оставлено только в листе сравнения; подтверждённый числовой ориентир не установлен.",
+        "missing_inputs": "Состав дочерних работ, объёмы, зависимости, параллельные фронты и ресурсы; длительность по критическому пути.",
+        "previous_unverified": {
+          "low": 15,
+          "high": 30,
+          "mean": 23,
+          "scope": "одна стройплощадка",
+          "url": "https://meganorm.ru/mega_doc/norm/mds_metodicheskij-dokument/0/mds_12-43_2008_metodicheskaya_dokumentatsiya_v_stroitelstve.html"
+        }
+      },
+      {
+        "work_id": "work_047",
+        "excel_row": 47,
+        "work_name": "Устройство котлована",
+        "row_kind": "ITEM",
+        "context": [
+          "Устройство подземной части"
+        ],
+        "benchmarks": [
+          {
+            "benchmark_id": "excavate1000",
+            "coverage": "Только часть / аналог; не весь этап"
+          }
+        ],
+        "verified_population_mean": null,
+        "review": "Назначен проверяемый пример с явным объёмом и единицами; он не заменяет расчёт всего этапа.",
+        "missing_inputs": "Геометрия/объём, грунт и конструкция, технология, производительность машин, состав бригады и технологические паузы.",
+        "previous_unverified": {
+          "low": 2,
+          "high": 7,
+          "mean": 5,
+          "scope": "котлован/захватка среднего масштаба",
+          "url": "https://www.forumhouse.ru/threads/109152/"
+        }
+      },
+      {
+        "work_id": "work_068",
+        "excel_row": 68,
+        "work_name": "Уплотнение грунта",
+        "row_kind": "ITEM",
+        "context": [
+          "Устройство подземной части",
+          "Земляные работы"
+        ],
+        "benchmarks": [
+          {
+            "benchmark_id": "soil_compact",
+            "coverage": "Выбранный вариант работы"
+          }
+        ],
+        "verified_population_mean": null,
+        "review": "Назначен проверяемый пример с явным объёмом и единицами; он не заменяет расчёт всего этапа.",
+        "missing_inputs": "Геометрия/объём, грунт и конструкция, технология, производительность машин, состав бригады и технологические паузы.",
+        "previous_unverified": {
+          "low": 1,
+          "high": 3,
+          "mean": 2,
+          "scope": "один слой/захватка",
+          "url": "https://meganorm.ru/mega_doc/norm/mds_metodicheskij-dokument/0/mds_12-43_2008_metodicheskaya_dokumentatsiya_v_stroitelstve.html"
+        }
+      }
+    ]
+  }
+]

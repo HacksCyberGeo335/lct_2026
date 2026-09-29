@@ -9,7 +9,7 @@ const timestamp = z
   .refine((s) => dateSchema.safeParse(s.slice(0, 10)).success);
 export const imageDetectionSchema = z.object({
   id: z.string().min(1).max(100),
-  class_id: z.string().trim().min(1).max(80),
+  class_id: z.union([z.string().trim().min(1).max(80), z.number().int().nonnegative()]).transform(String),
   confidence: z.number().min(0).max(1),
   bbox: z
     .tuple([

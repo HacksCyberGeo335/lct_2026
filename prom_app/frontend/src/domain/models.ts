@@ -13,17 +13,23 @@ export const equipmentClass = z.enum([
   'dozer',
   'truck',
   'mobile_crane',
+  'loader',
+  'trailer',
+  'concrete_pump',
 ]);
 export type EquipmentClass = z.infer<typeof equipmentClass>;
 export const classes: Record<EquipmentClass, { label: string; plural: string; color: string }> = {
+  loader: { label: 'Фронтальный погрузчик', plural: 'Фронтальные погрузчики', color: '#465E85' },
+  trailer: { label: 'Прицеп', plural: 'Прицепы', color: '#654779' },
+  concrete_pump: { label: 'Автобетононасос', plural: 'Автобетононасосы', color: '#77475F' },
   exc: { label: 'Экскаватор', plural: 'Экскаваторы', color: '#0E5A53' },
   dump: { label: 'Самосвал', plural: 'Самосвалы', color: '#35618C' },
   crane: { label: 'Кран', plural: 'Краны', color: '#8B610E' },
-  mixer: { label: 'Бетоносмеситель', plural: 'Бетоносмесители', color: '#77475F' },
+  mixer: { label: 'Автобетоносмеситель', plural: 'Автобетоносмесители', color: '#77475F' },
   roller: { label: 'Каток', plural: 'Катки', color: '#725228' },
   manipulator: { label: 'Кран-манипулятор', plural: 'Краны-манипуляторы', color: '#465E85' },
   dozer: { label: 'Бульдозер', plural: 'Бульдозеры', color: '#7D4736' },
-  truck: { label: 'Грузовик', plural: 'Грузовики', color: '#54652A' },
+  truck: { label: 'Грузовой автомобиль', plural: 'Грузовые автомобили', color: '#54652A' },
   mobile_crane: { label: 'Автокран', plural: 'Автокраны', color: '#654779' },
 };
 export const dateSchema = z
@@ -42,13 +48,13 @@ export const stageSchema = z
     zone: z.string(),
     workId: z
       .string()
-      .regex(/^work_\d+$/)
+      .regex(/^(?:work_\d+|user-[a-f0-9-]{36})$/)
       .optional(),
     catalogId: z.string().min(1).optional(),
     parentId: z.string().min(1).nullable().optional(),
     resources: z
       .array(z.object({ equipment: equipmentClass, quantity: z.number().int().min(1).max(1000000) }))
-      .max(9)
+      .max(12)
       .optional(),
     rulePolicy: z.enum(['required-only', 'required-and-unexpected']).optional(),
     equipment: equipmentClass.nullable(),
@@ -188,3 +194,7 @@ export function containRect(width: number, height: number, sourceWidth: number, 
     height: sourceHeight * scale,
   };
 }
+
+export const selectableEquipmentClasses = Object.entries(classes).filter(
+  ([id]) => !['mobile_crane', 'manipulator'].includes(id),
+);

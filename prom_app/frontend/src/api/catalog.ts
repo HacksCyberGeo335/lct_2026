@@ -14,8 +14,8 @@ const file = z.object({
 });
 export const catalogManifestSchema = z.object({
   version: z.literal(1),
-  id: z.literal('construction-reviewed-2026-09-18'),
-  reviewed_on: z.literal('2026-09-18'),
+  id: z.string().regex(/^construction-(?:reviewed|cv)-[a-z0-9-]+$/),
+  reviewed_on: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   files: z.object({ cards: file, equipment: file, durations: file }),
 });
 export async function loadCatalog(signal: AbortSignal) {
@@ -44,7 +44,7 @@ export async function loadCatalog(signal: AbortSignal) {
 }
 export function useCatalog() {
   return useQuery({
-    queryKey: ['catalog', '2026-09-18'],
+    queryKey: ['catalog', 'cv-c61a75e851da'],
     queryFn: ({ signal }) => loadCatalog(signal),
     staleTime: Infinity,
     gcTime: 30 * 60 * 1000,

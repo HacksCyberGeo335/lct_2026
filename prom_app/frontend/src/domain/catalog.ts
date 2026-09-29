@@ -71,6 +71,16 @@ const card = z.object({
   external_camera_observability: z.number().min(0).max(1),
   observability_note: z.string(),
   positive_visual_signs: z.array(text),
+  visual_criteria: z
+    .object({
+      not_started: z.string(),
+      start: z.string(),
+      progress: z.string(),
+      completion: z.string(),
+      limitations: z.string(),
+      duration_status: z.string(),
+    })
+    .optional(),
   predecessor: z.union([z.literal('UNKNOWN'), z.array(link)]),
   successor: z.union([z.literal('UNKNOWN'), z.array(link)]),
 });

@@ -1,23 +1,28 @@
-export const detectorAdapterVersion = 'legacy-demo-to-catalog-1';
+/** Dataset IDs supplied by CV_Detector_Filter in the updated knowledge base. */
+export const datasetClasses = [
+  'excavator',
+  'dump_truck',
+  'truck',
+  'crane',
+  'loader',
+  'concrete_mixer_truck',
+  'bulldozer',
+  'trailer',
+  'roller',
+  'concrete_pump',
+] as const;
+export const detectorAdapterVersion = 'dataset-10-classes-2026-09-29';
 export const detectorLabels: Record<string, string> = {
-  aerial_platform: 'Подъёмная рабочая платформа',
-  asphalt_paver: 'Асфальтоукладчик',
-  bulldozer: 'Бульдозер',
-  concrete_mixer_truck: 'Автобетоносмеситель',
-  concrete_paver: 'Бетоноукладчик',
-  concrete_pump: 'Бетононасос',
-  crane: 'Подъёмный кран',
-  drilling_rig: 'Буровая установка',
-  dump_truck: 'Самосвал',
   excavator: 'Экскаватор',
-  grader: 'Автогрейдер',
-  hdd_rig: 'Установка ГНБ',
-  loader: 'Погрузчик',
-  piling_rig: 'Сваепогружающая установка',
-  pipelayer: 'Трубоукладчик',
-  roller: 'Каток',
-  track_layer: 'Путеукладчик',
+  dump_truck: 'Самосвал',
   truck: 'Грузовой автомобиль',
+  crane: 'Кран',
+  loader: 'Фронтальный погрузчик',
+  concrete_mixer_truck: 'Автобетоносмеситель',
+  bulldozer: 'Бульдозер',
+  trailer: 'Прицеп',
+  roller: 'Каток',
+  concrete_pump: 'Автобетононасос',
 };
 const legacyAliases: Record<string, string> = {
   exc: 'excavator',
@@ -28,6 +33,7 @@ const legacyAliases: Record<string, string> = {
   manipulator: 'crane',
 };
 export function detectorClass(id: string) {
+  if (/^[0-9]$/.test(id)) return datasetClasses[Number(id)];
   return Object.hasOwn(legacyAliases, id) ? legacyAliases[id] : id;
 }
 export function detectorLabel(id: string) {
