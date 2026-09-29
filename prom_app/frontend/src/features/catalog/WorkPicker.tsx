@@ -17,7 +17,6 @@ export function WorkPicker({
   const [query, setQuery] = useState(''),
     [category, setCategory] = useState(''),
     [objectType, setObjectType] = useState(''),
-    [visibleOnly, setVisibleOnly] = useState(false),
     [status, setStatus] = useState('');
   const results = useMemo(
     () =>
@@ -30,10 +29,9 @@ export function WorkPicker({
               .includes(query.trim().toLocaleLowerCase('ru'))) &&
           (!category || c.macro_stage === category) &&
           (!objectType || c.applicable_object_types.includes(objectType)) &&
-          (!status || catalog.works.get(c.id)?.requirement_status === status) &&
-          (!visibleOnly || c.external_camera_observability >= 0.75),
+          (!status || catalog.works.get(c.id)?.requirement_status === status),
       ),
-    [catalog, query, category, objectType, visibleOnly, status],
+    [catalog, query, category, objectType, status],
   );
   const types = [...new Set(catalog.cards.flatMap((c) => c.applicable_object_types))];
   return (
@@ -45,7 +43,7 @@ export function WorkPicker({
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Название, work_047 или контекст"
+          placeholder="Название работы или раздел"
         />
       </label>
       <div className="catalog-grid">
@@ -81,10 +79,6 @@ export function WorkPicker({
           ))}
         </select>
       </label>
-      <label className="check">
-        <input type="checkbox" checked={visibleOnly} onChange={(e) => setVisibleOnly(e.target.checked)} />
-        Наблюдаемость от 0,75 — экспертная оценка
-      </label>
       <p className="sub">
         Найдено: {results.length}. Отсутствие отметки типа объекта не означает запрет применения.
       </p>
@@ -102,8 +96,7 @@ export function WorkPicker({
           >
             <strong>{c.canonical_work_name}</strong>
             <small>
-              {c.id} · {c.row_kind === 'AGGREGATE' ? 'Сводный раздел' : 'Работа'} ·{' '}
-              {c.source.context.join(' / ')}
+              {c.row_kind === 'AGGREGATE' ? 'Сводный раздел' : 'Работа'} · {c.source.context.join(' / ')}
             </small>
           </button>
         ))}

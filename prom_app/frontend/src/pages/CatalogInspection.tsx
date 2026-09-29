@@ -1,3 +1,5 @@
+import { CatalogManager } from '../features/catalog/CatalogManager';
+import { useCatalogChoice } from '../features/catalog/CatalogProvider';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApp, useFilters } from '../app/context';
@@ -22,6 +24,8 @@ export function CatalogInspection({ project }: { project?: Project }) {
   const query = useCatalog(),
     { objectId } = useParams(),
     { mode } = useApp();
+  const { custom } = useCatalogChoice();
+  const activeCatalog = custom?.catalog ?? query.data;
   const id = project?.id ?? objectId ?? 'api-workspace';
   return (
     <>
@@ -30,8 +34,9 @@ export function CatalogInspection({ project }: { project?: Project }) {
         <h1 className="h-page">Снимки и работы</h1>
         <p className="meta">Выберите плановую работу, уточните условия и сопоставьте их с наблюдениями.</p>
       </header>
-      {query.isPending && <p role="status">Загружаем и проверяем справочник…</p>}
-      {query.isError && (
+      <CatalogManager builtin={query.data} />
+      {!custom && query.isPending && <p role="status">Загружаем и проверяем справочник…</p>}
+      {!custom && query.isError && (
         <section className="sheet sheet-pad stack">
           <p role="alert">Не удалось открыть справочник. {query.error.message}</p>
           <button className="btn btn-primary" onClick={() => void query.refetch()}>
@@ -39,7 +44,14 @@ export function CatalogInspection({ project }: { project?: Project }) {
           </button>
         </section>
       )}
-      {query.data && <Workspace key={mode + ':' + id} objectId={id} catalog={query.data} project={project} />}
+      {activeCatalog && (
+        <Workspace
+          key={mode + ':' + id + ':' + activeCatalog.id}
+          objectId={id}
+          catalog={activeCatalog}
+          project={project}
+        />
+      )}
     </>
   );
 }
@@ -74,7 +86,10 @@ function Workspace({
     }
   });
   const [recoveryError, setRecoveryError] = useState(initial.error);
-  const baseProfile = session.profile ?? initial.profile ?? emptyProfile(objectId, catalog.id);
+  const baseProfile =
+    (session.profile?.catalogId === catalog.id ? session.profile : null) ??
+    initial.profile ??
+    emptyProfile(objectId, catalog.id);
   const stageId = params.get('stage');
   const profile = stageId
     ? profileForStage(
@@ -148,9 +163,11 @@ function Workspace({
       <section className="sheet sheet-pad stack">
         <div className="section-heading">
           <p>
-            <b>Справочник · 18 сентября 2026</b>
+            <b>Проверка по выбранному справочнику</b>
             <br />
-            <span className="sub">377 работ · 127 видов техники · 18 классов детектора</span>
+            <span className="sub">
+              {catalog.cards.length} работ · {catalog.detectors.size} классов детектора
+            </span>
           </p>
           {demoExtension && (
             <button
@@ -165,8 +182,8 @@ function Workspace({
           )}
         </div>
         <p className="sub">
-          Карточки 3.1-reviewed · техника 1.1 · длительности 1.0. Источники проверены составителем;
-          применимость к объекту требует уточнения.
+          Выберите работу и уточните условия, влияющие на технику. Справочник не заменяет проектную
+          документацию.
         </p>
         <p>
           {profile.kind === 'demo'

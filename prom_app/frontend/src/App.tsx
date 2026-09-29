@@ -1,3 +1,6 @@
+import { CatalogProvider } from './features/catalog/CatalogProvider';
+import { SiteMonitoring } from './pages/SiteMonitoring';
+import { MonitoringSettings } from './pages/MonitoringSettings';
 import { demoExtension, demoAvailable } from './app/demoExtension';
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
@@ -25,6 +28,8 @@ function ObjectRoute({
   const { mode } = useApp(),
     query = useProject(),
     location = useLocation();
+  if ((mode === 'api' || !demoExtension) && section === 'site') return <SiteMonitoring />;
+  if ((mode === 'api' || !demoExtension) && section === 'settings') return <MonitoringSettings />;
   if (mode === 'api' || !demoExtension)
     return section === 'inspection' ? (
       <Inspection project={query.project} />
@@ -239,9 +244,11 @@ function ModeSession({ mode, apiBase }: { mode: Mode; apiBase: string }) {
   }
   return (
     <AppContext.Provider value={{ mode, apiBase, changeMode, recordings, addRecording, clearRecordings }}>
-      <InspectionProvider>
-        <Shell />
-      </InspectionProvider>
+      <CatalogProvider>
+        <InspectionProvider>
+          <Shell />
+        </InspectionProvider>
+      </CatalogProvider>
     </AppContext.Provider>
   );
 }

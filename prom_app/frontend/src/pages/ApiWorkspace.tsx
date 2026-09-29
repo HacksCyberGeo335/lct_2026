@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { z } from 'zod';
 import { useApp } from '../app/context';
 import { request, readJson } from '../api/http';
+import { StoredMedia } from '../features/upload/StoredMedia';
 import { Upload } from '../features/upload/Upload';
 import { AnalysisPanel } from '../features/analysis/AnalysisPanel';
 import { ObjectWorkspace } from '../features/projects/ObjectWorkspace';
@@ -25,6 +26,7 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
       );
     },
     retry: false,
+    enabled: section !== 'schedule',
   });
   const recording = recordings.find((r) => r.id === selected) ?? recordings[recordings.length - 1];
   const titles: Record<string, string> = {
@@ -34,6 +36,17 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
     schedule: 'График работ',
     settings: 'Настройки мониторинга',
   };
+  if (section === 'schedule')
+    return (
+      <>
+        <header className="pagehead">
+          <p className="eyebrow">Планирование строительства</p>
+          <h1 className="h-page">График работ</h1>
+          <p className="meta">Создайте график вручную или импортируйте CSV и выберите объект.</p>
+        </header>
+        <ObjectWorkspace view="schedule" />
+      </>
+    );
   return (
     <>
       <header className="pagehead">
@@ -46,7 +59,7 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
           Открыть проверку снимков →
         </Link>
       </header>
-      {['objects', 'site', 'schedule', 'settings'].includes(section) && <ObjectWorkspace />}
+      {['objects', 'schedule'].includes(section) && <ObjectWorkspace view="objects" />}
       <section className="sheet sheet-pad stack">
         <div className="section-heading">
           <h2 className="h-sec">Подключение и загрузка</h2>
@@ -114,56 +127,6 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
             {demoAvailable && ' Демонстрационный сценарий можно открыть в верхней панели.'}
           </Empty>
         </section>
-      )}
-    </>
-  );
-}
-
-function StoredMedia({ url, image, name }: { url: string; image: boolean; name: string }) {
-  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [attempt, setAttempt] = useState(0);
-  return (
-    <>
-      {image ? (
-        <img
-          key={attempt}
-          className="api-image"
-          src={url}
-          alt={name}
-          onLoad={() => setState('ready')}
-          onError={() => setState('error')}
-        />
-      ) : (
-        <video
-          key={attempt}
-          controls
-          preload="metadata"
-          className="api-video"
-          src={url}
-          onLoadedMetadata={() => setState('ready')}
-          onError={() => setState('error')}
-        />
-      )}
-      <a className="btn btn-quiet" href={url} target="_blank" rel="noopener noreferrer">
-        Открыть оригинал
-      </a>
-      {state === 'loading' && <p role="status">Открываем файл из хранилища…</p>}
-      {state === 'error' && (
-        <div className="stack">
-          <p role="alert">
-            {image ? 'Не удалось показать фото.' : 'Не удалось воспроизвести видео.'} Проверьте доступность
-            хранилища и поддержку формата. Подтверждённая загрузка сохранена.
-          </p>
-          <button
-            className="btn btn-quiet"
-            onClick={() => {
-              setState('loading');
-              setAttempt((n) => n + 1);
-            }}
-          >
-            Повторить просмотр
-          </button>
-        </div>
       )}
     </>
   );

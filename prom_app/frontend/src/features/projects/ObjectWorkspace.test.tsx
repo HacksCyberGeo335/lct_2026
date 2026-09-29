@@ -41,11 +41,9 @@ it('selects an existing server object and sends removal of its plan only on expl
   fireEvent.change(screen.getByLabelText('Объект для графика', { exact: true }), {
     target: { value: object.id },
   });
-  fireEvent.click(screen.getByRole('button', { name: 'Продолжить', exact: true }));
-  fireEvent.click(screen.getByRole('button', { name: 'Удалить график', exact: true }));
-  fireEvent.click(
-    within(screen.getByRole('dialog')).getByRole('button', { name: 'Подтвердить удаление', exact: true }),
-  );
+  fireEvent.click(screen.getByRole('button', { name: 'Продолжить' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Удалить график' }));
+  fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Подтвердить удаление' }));
   expect(repository.update).not.toHaveBeenCalled();
   fireEvent.click(await screen.findByRole('button', { name: 'Сохранить объект и график' }));
   await waitFor(() =>
@@ -65,7 +63,7 @@ it('keeps the object and confirmation open when server deletion fails', async ()
     }),
   });
   await screen.findByText('Серверный объект');
-  fireEvent.click(screen.getByRole('button', { name: 'Удалить объект', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: 'Удалить объект' }));
   expect(repository.remove).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Подтвердить удаление объекта' }));
   await screen.findByText('Version conflict');

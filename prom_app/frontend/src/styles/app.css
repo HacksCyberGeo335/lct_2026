@@ -1329,3 +1329,13 @@ tbody th {
 .project-editor textarea {
   min-width: 0;
 }
+.monitoring-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr);
+  gap: 20px;
+}
+@media (max-width: 800px) {
+  .monitoring-layout {
+    grid-template-columns: 1fr;
+  }
+}

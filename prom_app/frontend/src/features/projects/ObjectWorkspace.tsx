@@ -9,7 +9,13 @@ import { PlanEditor } from './PlanEditor';
 import { projectRepository, type ManagedProject, type ProjectRepository, type WorkPlan } from './repository';
 
 type Workflow = { kind: 'object' | 'plan'; csv?: boolean; project?: ManagedProject };
-export function ObjectWorkspace({ repository = projectRepository }: { repository?: ProjectRepository }) {
+export function ObjectWorkspace({
+  repository = projectRepository,
+  view = 'objects',
+}: {
+  repository?: ProjectRepository;
+  view?: 'objects' | 'schedule';
+}) {
   const { objectId } = useParams();
   const client = useQueryClient();
   const query = useQuery({
@@ -38,7 +44,7 @@ export function ObjectWorkspace({ repository = projectRepository }: { repository
   return (
     <section className="sheet sheet-pad stack" aria-label="Объекты и графики">
       <div className="section-heading">
-        <h2 className="h-sec">Объекты и графики работ</h2>
+        <h2 className="h-sec">{view === 'schedule' ? 'Календарные графики' : 'Объекты строительства'}</h2>
         <span className="sub">{repository.available ? 'Серверные данные' : 'API ещё не подключён'}</span>
       </div>
       {!repository.available && (

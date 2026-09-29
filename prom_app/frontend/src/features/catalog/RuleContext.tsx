@@ -97,29 +97,35 @@ export function RuleContext({
         формируется.
       </p>
       {!!keys.length && (
-        <div className="catalog-grid">
-          {keys.map((key) => (
-            <label className="field" key={key}>
-              {conditionName(key)}
-              <select
-                value={p.conditions[key] ?? ''}
-                onChange={(e) => patch({ conditions: { ...p.conditions, [key]: e.target.value } })}
-              >
-                <option value="">Неизвестно / не задано</option>
-                {[...new Set(groups.flatMap((g) => (g.when[key] ? [g.when[key]] : [])))].map((v) => (
-                  <option key={v} value={v}>
-                    {valueName(v)}
+        <details>
+          <summary>Условия, меняющие требования к технике</summary>
+          <p className="sub">
+            Заполняйте только применимые условия. Неизвестные условия не считаются подтверждёнными.
+          </p>
+          <div className="catalog-grid">
+            {keys.map((key) => (
+              <label className="field" key={key}>
+                {conditionName(key)}
+                <select
+                  value={p.conditions[key] ?? ''}
+                  onChange={(e) => patch({ conditions: { ...p.conditions, [key]: e.target.value } })}
+                >
+                  <option value="">Неизвестно / не задано</option>
+                  {[...new Set(groups.flatMap((g) => (g.when[key] ? [g.when[key]] : [])))].map((v) => (
+                    <option key={v} value={v}>
+                      {valueName(v)}
+                    </option>
+                  ))}
+                  <option value="other">
+                    {key === 'soil_transport'
+                      ? 'Складирование на площадке / другой способ'
+                      : valueName('other')}
                   </option>
-                ))}
-                <option value="other">
-                  {key === 'soil_transport'
-                    ? 'Складирование на площадке / другой способ'
-                    : valueName('other')}
-                </option>
-              </select>
-            </label>
-          ))}
-        </div>
+                </select>
+              </label>
+            ))}
+          </div>
+        </details>
       )}
       {!!phases.length && (
         <fieldset>
