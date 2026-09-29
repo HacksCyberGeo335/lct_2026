@@ -20,7 +20,7 @@ test('site and settings retain their own purpose without object editing blocks',
   await expect(page.getByRole('alert')).toContainText('Проверьте адреса');
   await page.getByLabel('Адреса электронной почты').fill('engineer@example.com');
   await expect(page.getByRole('alert')).toHaveCount(0);
-  await expect(page.getByRole('button', { name: 'Сохранить настройки — API не подключён' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Сохранение пока недоступно' })).toBeDisabled();
   expect(writes).toEqual([]);
   await page.setViewportSize({ width: 375, height: 812 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -30,6 +30,7 @@ test('custom catalog edits are confirmed, survive navigation, export and restore
   page,
 }) => {
   await page.goto('/objects/unavailable/inspection?mode=api');
+  await page.getByText('Управление справочником', { exact: true }).click();
   const manager = page.getByRole('region', { name: 'Управление справочником' });
   await expect(manager.getByRole('button', { name: 'Редактировать копию' })).toBeEnabled();
   await manager.getByRole('button', { name: 'Редактировать копию' }).click();
@@ -46,6 +47,7 @@ test('custom catalog edits are confirmed, survive navigation, export and restore
   const path = await file.path();
   await page.getByRole('link', { name: 'Настройки', exact: true }).click();
   await page.getByRole('link', { name: 'Снимки и отклонения', exact: true }).click();
+  await page.getByText('Управление справочником', { exact: true }).click();
   await expect(manager).toContainText('Каталог команды');
   await manager.getByRole('button', { name: 'Использовать встроенный' }).click();
   await page.getByRole('button', { name: 'Применить справочник', exact: true }).click();
@@ -56,13 +58,11 @@ test('custom catalog edits are confirmed, survive navigation, export and restore
     .setInputFiles({ name: 'bad.json', mimeType: 'application/json', buffer: Buffer.from('{}') });
   await expect(manager.getByRole('alert')).toBeVisible();
   await expect(manager).toContainText('Встроенный справочник');
-  await manager
-    .getByLabel('Файл справочника')
-    .setInputFiles({
-      name: 'own.json',
-      mimeType: 'application/json',
-      buffer: await (await import('node:fs/promises')).readFile(path!),
-    });
+  await manager.getByLabel('Файл справочника').setInputFiles({
+    name: 'own.json',
+    mimeType: 'application/json',
+    buffer: await (await import('node:fs/promises')).readFile(path!),
+  });
   dialog = page.getByRole('dialog');
   await dialog.getByRole('button', { name: 'Применить справочник', exact: true }).click();
   await expect(manager).toContainText('Каталог команды');

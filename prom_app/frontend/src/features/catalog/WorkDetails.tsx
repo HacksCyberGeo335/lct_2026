@@ -59,7 +59,16 @@ export function WorkDetails({ catalog, workId }: { catalog: Catalog; workId: str
         <p>Типы объектов: {card.applicable_object_types.join(', ') || 'не указаны'}.</p>
         <p>
           Классы распознавания:{' '}
-          {work.detector_classes.map((item) => detectorLabel(item.class_id)).join(', ') || 'не заданы'}.
+          {[
+            ...new Set(
+              groups.flatMap((g) =>
+                g.one_of.flatMap((id) => catalog.equipmentById.get(id)?.detector_classes ?? []),
+              ),
+            ),
+          ]
+            .map((id) => detectorLabel(id))
+            .join(', ') || 'не заданы'}
+          .
         </p>
         <p>
           Возможная, но не обязательная техника:{' '}

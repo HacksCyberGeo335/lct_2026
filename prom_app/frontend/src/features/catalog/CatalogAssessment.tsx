@@ -24,7 +24,7 @@ export function CatalogAssessment({
   return (
     <section className="sheet sheet-pad stack catalog-assessment" aria-label="Сопоставление со справочником">
       <div className="section-heading">
-        <h2 className="h-sec">Что видно по выбранной работе</h2>
+        <h2 className="h-sec">3. Результат проверки</h2>
         <span className="catalog-tag">Автотревоги отключены</span>
       </div>
       <p>{result.reason}</p>

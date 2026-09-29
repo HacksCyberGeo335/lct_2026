@@ -1,3 +1,4 @@
+import { OpenInInspection } from '../upload/OpenInInspection';
 import { useFileOperation } from '../inspection/useFileOperation';
 import { useRef, useState } from 'react';
 import { useFilters } from '../../app/context';
@@ -32,7 +33,8 @@ export function FrameWorkspace({
   return (
     <section className="catalog-frames stack" aria-label="Наблюдения площадки">
       <div className="sheet sheet-pad stack">
-        <h2 className="h-sec">Снимки и результаты распознавания</h2>
+        <h2 className="h-sec">2. Материалы для проверки</h2>
+        <OpenInInspection />
         <label className="btn btn-primary inspection-file">
           Добавить снимки
           <input
@@ -60,8 +62,8 @@ export function FrameWorkspace({
         <p className="sub">
           PNG, JPEG, WebP, BMP, AVIF · до 20 МБ на файл, 50 снимков / 200 МБ за сеанс. Для проверки других
           форматов экспортируйте фото в JPEG или PNG. После перезагрузки снимки нужно выбрать заново. Здесь
-          они открываются локально; для отправки в хранилище используйте «Загрузить фото или видео» в разделе
-          «Объекты».
+          они открываются локально; для отправки в хранилище используйте «Загрузить фото или видео» на
+          «Площадке». Загруженные фото можно выбрать выше без повторной загрузки.
         </p>
         {busy && <p role="status">Проверяем файлы…</p>}
         {error && (
@@ -105,7 +107,8 @@ export function FrameWorkspace({
               ) : undefined
             }
           >
-            Для своих файлов импортируйте JSON распознавания. API анализа снимков в этой ветке ещё нет.
+            Автоматическое распознавание пока недоступно. Полученный ранее результат можно добавить через
+            дополнительные инструменты.
           </Empty>
         </div>
       ) : (
@@ -153,38 +156,41 @@ export function FrameWorkspace({
               </dl>
             )}
             {frame.result?.error && <p role="alert">{frame.result.error}</p>}
-            <label className="field">
-              Импортировать результат анализа (JSON)
-              <input
-                ref={resultInput}
-                type="file"
-                accept=".json"
-                disabled={busy || disabled}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file)
-                    void run(async (current) => {
-                      const result = await readAnalysisFile(file, frame);
-                      if (current === version.current) setPending({ frame, result });
-                    });
-                }}
-              />
-            </label>
-            <p className="sub">
-              Проверяются SHA-256, имя и размеры снимка. Импорт не запускает распознавание.
-            </p>
-            <button className="btn btn-quiet" onClick={() => downloadResultTemplate(frame)}>
-              Скачать шаблон результата
-            </button>
-            {frame.result && (
-              <button
-                className="btn btn-quiet"
-                onClick={() => downloadJson(frame.result, frame.name + '.result.json')}
-              >
-                Скачать текущий результат
+            <details>
+              <summary>Дополнительные инструменты: результаты распознавания</summary>
+              <label className="field">
+                Импортировать результат анализа (JSON)
+                <input
+                  ref={resultInput}
+                  type="file"
+                  accept=".json"
+                  disabled={busy || disabled}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file)
+                      void run(async (current) => {
+                        const result = await readAnalysisFile(file, frame);
+                        if (current === version.current) setPending({ frame, result });
+                      });
+                  }}
+                />
+              </label>
+              <p className="sub">
+                Проверяются SHA-256, имя и размеры снимка. Импорт не запускает распознавание.
+              </p>
+              <button className="btn btn-quiet" onClick={() => downloadResultTemplate(frame)}>
+                Скачать шаблон результата
               </button>
-            )}
+              {frame.result && (
+                <button
+                  className="btn btn-quiet"
+                  onClick={() => downloadJson(frame.result, frame.name + '.result.json')}
+                >
+                  Скачать текущий результат
+                </button>
+              )}
+            </details>
             <button className="btn btn-quiet" disabled={busy || disabled} onClick={() => setRemove(true)}>
               Убрать снимок из сеанса
             </button>

@@ -26,9 +26,9 @@ export function AnalysisPanel({
     <section className="analysis-panel stack" aria-labelledby={titleId}>
       <div className="section-heading">
         <h2 id={titleId} className="h-sec">
-          Обработка и результат LLM
+          Обработка и результат анализа
         </h2>
-        {status === 'unavailable' && <span className="analysis-placeholder">Заготовка интерфейса</span>}
+        {status === 'unavailable' && <span className="analysis-placeholder">Анализ пока недоступен</span>}
       </div>
       <p className="sub analysis-file">Файл: {fileName}</p>
       <ol className="analysis-steps" aria-label="Этапы обработки файла">
@@ -41,12 +41,12 @@ export function AnalysisPanel({
           <span>{statusLabels[status]}</span>
         </li>
         <li aria-current={status === 'completed' ? 'step' : undefined}>
-          <strong>3. Ответ LLM</strong>
+          <strong>3. Заключение</strong>
           <span>{status === 'completed' ? 'Ответ получен' : 'Ответа пока нет'}</span>
         </li>
       </ol>
       <div className="analysis-output stack" aria-live="polite" aria-atomic="true">
-        <h3 className="h-sec">Результат LLM</h3>
+        <h3 className="h-sec">Результат анализа</h3>
         {status === 'unavailable' && (
           <>
             <p>Здесь появится ответ модели по выбранному фото или видео.</p>

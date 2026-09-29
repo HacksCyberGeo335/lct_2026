@@ -8,7 +8,7 @@ it('never reuses another file response after switching the selected file', () =>
   expect(screen.queryByText(analysis.text)).not.toBeNull();
   rerender(<AnalysisPanel fileId="second" fileName="second.mp4" analysis={analysis} />);
   expect(screen.queryByText(analysis.text)).toBeNull();
-  expect(screen.queryByText('Заготовка интерфейса')).not.toBeNull();
+  expect(screen.queryByText('Анализ пока недоступен')).not.toBeNull();
   expect(screen.queryByRole('progressbar')).toBeNull();
 });
 it('renders model output as text rather than executing model-provided HTML', () => {

@@ -1,3 +1,4 @@
+import { OpenInInspection } from '../features/upload/OpenInInspection';
 import { demoAvailable } from '../app/demoExtension';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -10,7 +11,7 @@ import { AnalysisPanel } from '../features/analysis/AnalysisPanel';
 import { ObjectWorkspace } from '../features/projects/ObjectWorkspace';
 import { Empty, QueryState } from '../shared/ui';
 import { useState } from 'react';
-export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
+export function ObjectsPage() {
   const { apiBase, recordings } = useApp(),
     [selected, setSelected] = useState('');
   const health = useQuery({
@@ -26,50 +27,29 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
       );
     },
     retry: false,
-    enabled: section !== 'schedule',
   });
   const recording = recordings.find((r) => r.id === selected) ?? recordings[recordings.length - 1];
-  const titles: Record<string, string> = {
-    objects: 'Ведомость объектов',
-    site: 'Площадка',
-    analytics: 'Соответствие графику',
-    schedule: 'График работ',
-    settings: 'Настройки мониторинга',
-  };
-  if (section === 'schedule')
-    return (
-      <>
-        <header className="pagehead">
-          <p className="eyebrow">Планирование строительства</p>
-          <h1 className="h-page">График работ</h1>
-          <p className="meta">Создайте график вручную или импортируйте CSV и выберите объект.</p>
-        </header>
-        <ObjectWorkspace view="schedule" />
-      </>
-    );
   return (
     <>
       <header className="pagehead">
-        <p className="eyebrow">Рабочее подключение / API</p>
-        <h1 className="h-page">{titles[section] ?? titles.objects}</h1>
-        <p className="meta">
-          Фото и видео можно загрузить на сервер. Анализ и мониторинг ожидают подключения серверных функций.
-        </p>
+        <p className="eyebrow">Объекты строительства</p>
+        <h1 className="h-page">Ведомость объектов</h1>
+        <p className="meta">Карточки строительных объектов и связанные с ними графики работ.</p>
         <Link className="btn btn-primary" to="/objects/unavailable/inspection?mode=api">
           Открыть проверку снимков →
         </Link>
       </header>
-      {['objects', 'schedule'].includes(section) && <ObjectWorkspace view="objects" />}
+      <ObjectWorkspace view="objects" />
       <section className="sheet sheet-pad stack">
         <div className="section-heading">
-          <h2 className="h-sec">Подключение и загрузка</h2>
+          <h2 className="h-sec">Материалы площадки</h2>
           <Upload onSelected={setSelected} />
         </div>
         {health.error ? (
           <QueryState error={health.error} />
         ) : health.data ? (
           <p role="status" className="connection-ok">
-            Gateway доступен · /health
+            Сервис загрузки доступен
           </p>
         ) : (
           <QueryState pending={health.isPending} />
@@ -77,17 +57,13 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
         <button className="btn btn-quiet" disabled={health.isFetching} onClick={() => void health.refetch()}>
           {health.isFetching ? 'Проверяем подключение…' : 'Проверить подключение'}
         </button>
-        <p className="sub">
-          Ответ Gateway подтверждает только его доступность. Состояние базы и хранилища проверяется при
-          загрузке файла.
-        </p>
-        <p className="sub">
-          Реестр объектов, камеры, обработка, аналитика, календарные планы и настройки ещё не имеют API. После
-          загрузки результат анализа автоматически не создаётся.
-        </p>
-        {section === 'settings' && (
-          <p>Оповещения и список сотрудников недоступны. Серверное сохранение настроек не реализовано.</p>
-        )}
+        <details>
+          <summary>О доступных возможностях</summary>
+          <p className="sub">
+            Доступность сервиса не подтверждает состояние хранилища. Реестр объектов, камеры и автоматический
+            анализ ещё не подключены.
+          </p>
+        </details>
       </section>
       {recording ? (
         <section className="sheet sheet-pad stack">
@@ -112,12 +88,16 @@ export function ApiWorkspace({ section = 'objects' }: { section?: string }) {
           ) : (
             <p>Файл загружен. Сервер не предоставил отдельный адрес для просмотра.</p>
           )}
-          <p className="mono small-text">UUID: {recording.id}</p>
-          <p>READY: файл загружен; анализ пока недоступен.</p>
+          <details>
+            <summary>Технические сведения</summary>
+            <p className="mono small-text">UUID: {recording.id}</p>
+          </details>
+          <p>Файл загружен. Анализ пока недоступен.</p>
           <p className="sub">
-            Если файл не открывается, проверьте доступность хранилища и поддержку формата браузером. Список
-            существует только в текущем сеансе: серверный GET списка пока отсутствует.
+            Если файл не открывается, проверьте доступность хранилища и поддержку формата браузером. История
+            файлов пока доступна только до перезагрузки страницы.
           </p>
+          <OpenInInspection recording={recording} />
           <AnalysisPanel fileId={recording.id} fileName={recording.name} analysis={recording.analysis} />
         </section>
       ) : (

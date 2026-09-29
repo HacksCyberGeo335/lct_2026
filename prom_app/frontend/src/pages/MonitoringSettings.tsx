@@ -1,7 +1,9 @@
+import { useUnsavedChanges } from '../shared/UnsavedChanges';
 import { useState } from 'react';
 export function MonitoringSettings() {
   const [settings, setSettings] = useState({ weekly: false, deviations: false, cameras: false });
   const [emails, setEmails] = useState('');
+  useUnsavedChanges(!!emails || Object.values(settings).some(Boolean), 'Настройки уведомлений не сохранены.');
   const options = [
     ['weekly', 'Сводка о ходе строительства', 'Еженедельный отчёт о состоянии объекта и выполнении графика.'],
     ['deviations', 'Оповещения об отклонениях', 'Уведомления о выявленных расхождениях с планом работ.'],
@@ -74,7 +76,7 @@ export function MonitoringSettings() {
             </p>
           )}
           <button className="btn btn-primary" disabled>
-            Сохранить настройки — API не подключён
+            Сохранение пока недоступно
           </button>
         </div>
       </section>

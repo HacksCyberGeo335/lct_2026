@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../../shared/UnsavedChanges';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useApp } from '../../app/context';
 import {
@@ -14,7 +15,7 @@ import {
   validateMediaBatch,
   videoFormatLabel,
 } from '../../shared/mediaFiles';
-import { Modal, Notice } from '../../shared/ui';
+import { ErrorMessage, Modal, Notice } from '../../shared/ui';
 
 type Phase = 'idle' | 'preparing' | 'transferring' | 'confirming' | 'success' | 'error' | 'cancelled';
 const labels: Record<Phase, string> = {
@@ -55,6 +56,10 @@ export function Upload({
   const completed = items.filter((item) => item.phase === 'success').length;
   const success = items.length > 0 && completed === items.length;
   const next = items.find((item) => item.phase !== 'success');
+  useUnsavedChanges(
+    busy || !!next,
+    busy ? 'Передача файлов будет остановлена.' : 'Очередь незавершённых загрузок будет сброшена.',
+  );
   function select(files: File[]) {
     if (busyRef.current || !files.length) return;
     const issue = validateMediaBatch(files);
@@ -76,7 +81,6 @@ export function Upload({
     );
   }
   function close() {
-    if (busyRef.current) aborter.current?.abort();
     setOpen(false);
   }
   async function run() {
@@ -114,6 +118,7 @@ export function Upload({
           }
           addRecording({
             id,
+            sourceFile: item.file,
             objectId,
             cameraId,
             name: item.file.name,
@@ -150,7 +155,11 @@ export function Upload({
   return (
     <>
       <button className="btn btn-primary" onClick={() => setOpen(true)}>
-        + Загрузить фото или видео
+        {busy
+          ? 'Загрузка выполняется — открыть очередь'
+          : next
+            ? 'Продолжить загрузку файлов'
+            : '+ Загрузить фото или видео'}
       </button>
       <Modal
         open={open}
@@ -214,16 +223,21 @@ export function Upload({
                       <span className="mono">{item.progress}%</span>
                     </div>
                   )}
-                  {item.uuid && <span className="mono small-text">UUID: {item.uuid}</span>}
+                  {item.uuid && (
+                    <details>
+                      <summary>Технические сведения</summary>
+                      <span className="mono small-text">UUID: {item.uuid}</span>
+                    </details>
+                  )}
                 </li>
               ))}
             </ol>
           </>
         )}
         {error && (
-          <p id={errorId} className="error-text" role="alert">
-            {error}
-          </p>
+          <div id={errorId} className="error-text" role="alert">
+            <ErrorMessage message={error} />
+          </div>
         )}
         {mode === 'api' && (
           <p className="sub">
@@ -234,7 +248,7 @@ export function Upload({
           <>
             <Notice>
               {mode === 'api'
-                ? 'READY: файлы загружены; анализ пока недоступен.'
+                ? 'Файлы загружены. Анализ пока недоступен.'
                 : 'Файлы открыты локально. Распознавание не выполнялось.'}
             </Notice>
             <button className="btn btn-primary" onClick={close}>

@@ -42,7 +42,42 @@ export function bundleOf(catalog: Catalog, name: string): CatalogBundle {
   };
 }
 export async function validateBundle(input: unknown) {
-  const bundle = bundleSchema.parse(input);
+  const parsed = bundleSchema.safeParse(input);
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue.path;
+    const labels: Record<string, string> = {
+      name: 'Название справочника',
+      cards: 'Карточки работ',
+      equipment: 'Техника',
+      durations: 'Сведения о сроках',
+      works: 'Работы',
+      canonical_work_name: 'Название работы',
+      work_name: 'Название работы',
+      positive_visual_signs: 'Визуальные признаки',
+      one_of: 'Альтернативы техники',
+      phase: 'Фаза',
+      required_equipment: 'Обязательная техника',
+      conditional_required_equipment: 'Условная техника',
+    };
+    const raw = input as Record<string, unknown>;
+    const section =
+      raw && typeof raw === 'object' ? (raw[String(path[0])] as Record<string, unknown>) : undefined;
+    const rows = section && typeof section === 'object' ? section[String(path[1])] : undefined;
+    const row =
+      Array.isArray(rows) && typeof path[2] === 'number'
+        ? (rows[path[2]] as Record<string, unknown>)
+        : undefined;
+    const name = row?.canonical_work_name ?? row?.work_name;
+    throw new Error(
+      (name ? 'Работа «' + String(name) + '». ' : '') +
+        path
+          .map((p) => (typeof p === 'number' ? 'строка ' + (p + 1) : (labels[String(p)] ?? String(p))))
+          .join(' → ') +
+        ': проверьте обязательное значение и формат. Для группы техники оставьте хотя бы одну альтернативу.',
+    );
+  }
+  const bundle = parsed.data;
   if (bundle.equipment.detector_class_catalog.some((item) => !Object.hasOwn(detectorLabels, item.class_id)))
     throw new Error(
       'В справочнике есть классы детектора, которые пока не поддерживаются интерфейсом. Используйте классы из шаблона.',

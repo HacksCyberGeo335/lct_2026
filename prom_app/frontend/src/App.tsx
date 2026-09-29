@@ -1,3 +1,5 @@
+import { useUnsavedChanges } from './shared/UnsavedChanges';
+import { ScheduleComparison } from './pages/ScheduleComparison';
 import { CatalogProvider } from './features/catalog/CatalogProvider';
 import { SiteMonitoring } from './pages/SiteMonitoring';
 import { MonitoringSettings } from './pages/MonitoringSettings';
@@ -16,7 +18,8 @@ import {
 import { InspectionProvider } from './features/inspection/session';
 const Inspection = lazy(() => import('./pages/Inspection').then((m) => ({ default: m.Inspection })));
 import type { Mode } from './domain/models';
-import { ApiWorkspace } from './pages/ApiWorkspace';
+import { ObjectsPage } from './pages/ObjectsPage';
+import { SchedulePage } from './pages/SchedulePage';
 import { Empty, QueryState } from './shared/ui';
 import { appearance, transition } from './shared/motion';
 
@@ -28,14 +31,11 @@ function ObjectRoute({
   const { mode } = useApp(),
     query = useProject(),
     location = useLocation();
+  if ((mode === 'api' || !demoExtension) && section === 'analytics') return <ScheduleComparison />;
   if ((mode === 'api' || !demoExtension) && section === 'site') return <SiteMonitoring />;
   if ((mode === 'api' || !demoExtension) && section === 'settings') return <MonitoringSettings />;
   if (mode === 'api' || !demoExtension)
-    return section === 'inspection' ? (
-      <Inspection project={query.project} />
-    ) : (
-      <ApiWorkspace section={section} />
-    );
+    return section === 'inspection' ? <Inspection project={query.project} /> : <SchedulePage />;
   if (query.isPending || query.error)
     return <QueryState pending={query.isPending} error={query.error} retry={() => void query.refetch()} />;
   if (!query.project)
@@ -70,6 +70,7 @@ function Shell() {
     location = useLocation(),
     navigate = useNavigate(),
     reduce = useReducedMotion();
+  const [menuOpen, setMenuOpen] = useState(false);
   const [lastObjectId, setLastObjectId] = useState(demoExtension?.initialObjectId ?? '');
   const pathObjectId = location.pathname.startsWith('/objects/')
     ? location.pathname.split('/')[2]
@@ -78,7 +79,9 @@ function Shell() {
     if (pathObjectId && query.data?.some((project) => project.id === pathObjectId))
       setLastObjectId(pathObjectId);
   }, [pathObjectId, query.data]);
-  const objectId = pathObjectId || (mode === 'demo' ? lastObjectId : (query.data?.[0]?.id ?? 'unavailable'));
+  const objectId =
+    pathObjectId ||
+    (query.data?.some((p) => p.id === lastObjectId) ? lastObjectId : (query.data?.[0]?.id ?? 'unavailable'));
   const contextSearch = location.search;
   const route = '/objects/' + encodeURIComponent(objectId);
   const links = [
@@ -112,9 +115,27 @@ function Shell() {
               <span className="mark-sub">Мониторинг площадок</span>
             </span>
           </Link>
-          <nav className="nav" aria-label="Разделы системы">
+          <button
+            className="btn btn-quiet mobile-menu"
+            aria-expanded={menuOpen}
+            aria-controls="main-navigation"
+            onClick={() => setMenuOpen(!menuOpen)}
+          >
+            {menuOpen ? 'Закрыть меню' : currentTitle + ' · Меню'}
+          </button>
+          <nav
+            id="main-navigation"
+            className={'nav' + (menuOpen ? ' nav-open' : '')}
+            aria-label="Разделы системы"
+          >
             {links.map(([label, path]) => (
-              <NavLink key={label} end className="navlink" to={path + contextSearch}>
+              <NavLink
+                onClick={() => setMenuOpen(false)}
+                key={label}
+                end
+                className="navlink"
+                to={path + contextSearch}
+              >
                 {({ isActive }) => (
                   <>
                     {label}
@@ -130,14 +151,14 @@ function Shell() {
               </NavLink>
             ))}
           </nav>
-          <span className="who-face" title={mode === 'demo' ? 'Демонстрационный профиль' : 'API'}>
-            {mode === 'demo' ? 'ДМ' : 'API'}
+          <span className="who-face" title={mode === 'demo' ? 'Демонстрационный профиль' : 'Стройконтроль'}>
+            {mode === 'demo' ? 'ДМ' : 'С'}
           </span>
         </div>
       </header>
       <div className="wrap contextbar no-print">
         <span className={'mode-label ' + mode}>
-          {mode === 'demo' ? 'Демонстрационные данные' : 'Рабочее подключение API'}
+          {mode === 'demo' ? 'Демонстрационные данные' : 'Рабочая версия'}
         </span>
         {location.pathname !== '/objects' && query.data && (
           <label className="object-switch">
@@ -167,7 +188,7 @@ function Shell() {
               <Route path="/" element={<Navigate to={'/objects' + contextSearch} replace />} />
               <Route
                 path="/objects"
-                element={mode === 'demo' && demoExtension ? <demoExtension.Objects /> : <ApiWorkspace />}
+                element={mode === 'demo' && demoExtension ? <demoExtension.Objects /> : <ObjectsPage />}
               />
               <Route path="/objects/:objectId" element={<ObjectRoute section="site" />} />
               <Route path="/objects/:objectId/analytics" element={<ObjectRoute section="analytics" />} />
@@ -196,9 +217,7 @@ function Shell() {
       <footer className="wrap footer">
         <span>Стройконтроль · Мониторинг строительства</span>
         <span>
-          {mode === 'demo'
-            ? 'Демонстрационный срез · 25 августа 2026'
-            : 'API · возможности зависят от серверных контрактов'}
+          {mode === 'demo' ? 'Демонстрационный срез · 25 августа 2026' : 'Стройконтроль · Рабочая версия'}
         </span>
       </footer>
     </>
@@ -221,6 +240,11 @@ export default function App({ initialMode, apiBase }: { initialMode: Mode; apiBa
 }
 function ModeSession({ mode, apiBase }: { mode: Mode; apiBase: string }) {
   const [recordings, setRecordings] = useState<LocalRecording[]>([]);
+  useUnsavedChanges(
+    recordings.length > 0,
+    'Список загруженных материалов доступен только в текущем сеансе.',
+    false,
+  );
   const ownedUrls = useRef(new Set<string>()),
     navigate = useNavigate();
   const clearRecordings = () => {

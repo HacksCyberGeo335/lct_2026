@@ -1,3 +1,5 @@
+import { addWork, removeWork, synchronizeWork } from './catalogEditing';
+import { useUnsavedChanges } from '../../shared/UnsavedChanges';
 import { useEffect, useRef, useState } from 'react';
 import type { Catalog } from '../../domain/catalog';
 import { Modal } from '../../shared/ui';
@@ -5,12 +7,13 @@ import { downloadJson } from '../../api/analysisResult';
 import { bundleOf, readCatalogBundle, validateBundle, type CatalogBundle } from './catalogBundle';
 import { useCatalogChoice } from './CatalogProvider';
 export function CatalogManager({ builtin }: { builtin?: Catalog }) {
-  const { custom, setCustom } = useCatalogChoice();
+  const { custom, setCustom, exported, setExported } = useCatalogChoice();
   const current = custom?.catalog ?? builtin;
   const [error, setError] = useState('');
   const [pending, setPending] = useState<{ catalog: Catalog; name: string } | null>(null);
   const [restore, setRestore] = useState(false);
   const [editing, setEditing] = useState<CatalogBundle | null>(null);
+  useUnsavedChanges(!!editing, 'Редактирование справочника не завершено.');
   const [busy, setBusy] = useState(false);
   const version = useRef(0);
   useEffect(
@@ -69,10 +72,12 @@ export function CatalogManager({ builtin }: { builtin?: Catalog }) {
         <button
           className="btn btn-quiet"
           disabled={!current || busy}
-          onClick={() =>
-            current &&
-            downloadJson(bundleOf(current, custom?.name ?? 'Мой справочник'), 'construction-catalog.json')
-          }
+          onClick={() => {
+            if (current) {
+              downloadJson(bundleOf(current, custom?.name ?? 'Мой справочник'), 'construction-catalog.json');
+              setExported(current.id);
+            }
+          }}
         >
           Скачать справочник / шаблон
         </button>
@@ -92,6 +97,13 @@ export function CatalogManager({ builtin }: { builtin?: Catalog }) {
           </button>
         )}
       </div>
+      {custom && (
+        <p role="status">
+          {exported === custom.catalog.id
+            ? 'Файл справочника скачан'
+            : 'Версия не сохранена: скачайте справочник перед перезагрузкой'}
+        </p>
+      )}
       {busy && <p role="status">Проверяем справочник…</p>}
       {error && (
         <p className="error-text" role="alert">
@@ -121,7 +133,9 @@ export function CatalogManager({ builtin }: { builtin?: Catalog }) {
       </Modal>
       <Modal
         open={!!editing}
-        onClose={() => setEditing(null)}
+        onClose={() => {
+          if (window.confirm('Закрыть редактор и удалить неприменённые изменения?')) setEditing(null);
+        }}
         title="Редактирование справочника"
         description="Редактируется копия. Изменённые требования не считаются проверенными составителем исходного справочника."
       >
@@ -150,6 +164,8 @@ function CatalogEditor({
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState(initial.cards.cards[0].id);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [machine, setMachine] = useState('');
   const card = bundle.cards.cards.find((c) => c.id === id)!;
   const work = bundle.equipment.works.find((w) => w.work_id === id)!;
   function rename(name: string) {
@@ -183,19 +199,83 @@ function CatalogEditor({
           onChange={(e) => setBundle({ ...bundle, name: e.target.value })}
         />
       </label>
+      <div className="actions">
+        <button
+          className="btn btn-quiet"
+          onClick={() => {
+            const id = 'user-' + crypto.randomUUID();
+            setBundle(addWork(bundle, id));
+            setId(id);
+            setSearch('');
+          }}
+        >
+          Добавить работу
+        </button>
+        <button
+          className="btn btn-quiet"
+          disabled={bundle.cards.cards.length <= 1}
+          onClick={() => {
+            if (
+              window.confirm(
+                'Удалить работу «' +
+                  card.canonical_work_name +
+                  '» из копии справочника? Её связи с другими работами тоже будут удалены.',
+              )
+            ) {
+              const next = removeWork(bundle, id);
+              setBundle(next);
+              setId(next.cards.cards[0].id);
+            }
+          }}
+        >
+          Удалить работу
+        </button>
+      </div>
+      <label className="field">
+        Поиск работы
+        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
+      </label>
       <label className="field">
         Редактируемая работа
         <select aria-label="Редактируемая работа" value={id} onChange={(e) => setId(e.target.value)}>
-          {bundle.cards.cards.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.canonical_work_name}
-            </option>
-          ))}
+          {bundle.cards.cards
+            .filter(
+              (c) =>
+                c.id === id || c.canonical_work_name.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+            )
+            .map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.canonical_work_name}
+              </option>
+            ))}
         </select>
       </label>
       <label className="field">
         Название работы
         <input value={card.canonical_work_name} maxLength={300} onChange={(e) => rename(e.target.value)} />
+      </label>
+      <label className="field">
+        Раздел работ
+        <select
+          value={card.macro_stage}
+          onChange={(e) =>
+            setBundle({
+              ...bundle,
+              cards: {
+                ...bundle.cards,
+                cards: bundle.cards.cards.map((c) =>
+                  c.id === id ? { ...c, macro_stage: e.target.value } : c,
+                ),
+              },
+            })
+          }
+        >
+          {Object.entries(bundle.cards.macro_stage_definitions).map(([key, name]) => (
+            <option key={key} value={key}>
+              {name}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="field">
         Визуальные признаки
@@ -226,6 +306,63 @@ function CatalogEditor({
               {group.equipment_name_ru} · {group.phase}
             </legend>
             <p className="sub">{group.condition}</p>
+            <label className="field">
+              Фаза работы
+              <input
+                value={group.phase}
+                onChange={(e) =>
+                  setBundle({
+                    ...bundle,
+                    equipment: {
+                      ...bundle.equipment,
+                      works: bundle.equipment.works.map((w) =>
+                        w.work_id !== id
+                          ? w
+                          : {
+                              ...w,
+                              [key]: w[key].map((g) =>
+                                g.requirement_id !== group.requirement_id
+                                  ? g
+                                  : {
+                                      ...g,
+                                      phase: e.target.value,
+                                      source_ids: [],
+                                      evidence_level: 'USER_DEFINED',
+                                    },
+                              ),
+                            },
+                      ),
+                    },
+                  })
+                }
+              />
+            </label>
+            <button
+              className="btn btn-quiet"
+              onClick={() =>
+                setBundle(
+                  synchronizeWork(
+                    {
+                      ...bundle,
+                      equipment: {
+                        ...bundle.equipment,
+                        works: bundle.equipment.works.map((w) =>
+                          w.work_id !== id
+                            ? w
+                            : {
+                                ...w,
+                                [key]: w[key].filter((g) => g.requirement_id !== group.requirement_id),
+                              },
+                        ),
+                      },
+                    },
+                    id,
+                  ),
+                )
+              }
+            >
+              Удалить группу требований
+            </button>
             <div className="catalog-class-list">
               {bundle.equipment.equipment_ontology
                 .filter((item) => item.detector_classes.length || group.one_of.includes(item.id))
@@ -271,11 +408,66 @@ function CatalogEditor({
           </fieldset>
         )),
       )}
-      {!work.required_equipment.length && !work.conditional_required_equipment.length && (
-        <p>
-          У этой работы нет обязательных групп техники. Новые группы и структуру работ можно задать в
-          импортируемом JSON по шаблону.
-        </p>
+      {card.row_kind === 'ITEM' && (
+        <div className="stack">
+          <label className="field">
+            Техника для новой группы
+            <select value={machine} onChange={(e) => setMachine(e.target.value)}>
+              <option value="">Выберите технику</option>
+              {bundle.equipment.equipment_ontology.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name_ru}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="btn btn-quiet"
+            disabled={!machine}
+            onClick={() => {
+              const equipment = bundle.equipment.equipment_ontology.find((e) => e.id === machine)!;
+              const next = {
+                ...bundle,
+                equipment: {
+                  ...bundle.equipment,
+                  works: bundle.equipment.works.map((w) =>
+                    w.work_id !== id
+                      ? w
+                      : {
+                          ...w,
+                          required_equipment: [
+                            ...w.required_equipment,
+                            {
+                              requirement_id: 'user-' + crypto.randomUUID(),
+                              relation: 'REQUIRES' as const,
+                              functional_equipment_id: machine,
+                              equipment_name_ru: equipment.name_ru,
+                              one_of: [machine],
+                              phase: 'Основная работа',
+                              when: {},
+                              condition: 'Требуется для выбранной работы',
+                              rationale: 'Задано пользователем',
+                              evidence_level: 'USER_DEFINED',
+                              source_ids: [],
+                              alternatives_exhaustive: false,
+                              alternative_selection: 'ANY',
+                            },
+                          ],
+                        },
+                  ),
+                },
+              };
+              setBundle(synchronizeWork(next, id));
+              setMachine('');
+            }}
+          >
+            Добавить группу требований
+          </button>
+          <p className="sub">
+            Новая группа обязательна для выбранной фазы. Условные требования из исходного справочника
+            сохраняют свои условия.
+          </p>
+        </div>
       )}
       {error && (
         <p role="alert" className="error-text">
@@ -298,9 +490,19 @@ function CatalogEditor({
                 })),
               },
             };
-            await onApply(cleaned);
-          } catch {
-            setError('Проверьте названия и оставьте хотя бы одну альтернативу в каждой группе техники.');
+            let synchronized = cleaned;
+            for (const work of cleaned.equipment.works) {
+              const before = initial.equipment.works.find((w) => w.work_id === work.work_id);
+              if (
+                !before ||
+                JSON.stringify([before.required_equipment, before.conditional_required_equipment]) !==
+                  JSON.stringify([work.required_equipment, work.conditional_required_equipment])
+              )
+                synchronized = synchronizeWork(synchronized, work.work_id);
+            }
+            await onApply(synchronized);
+          } catch (e) {
+            setError(e instanceof Error ? e.message : 'Проверьте названия и группы техники.');
           } finally {
             setSaving(false);
           }

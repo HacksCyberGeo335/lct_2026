@@ -29,7 +29,7 @@ test('API upload sequence and confirmation retry without another PUT', async ({ 
     await r.fulfill({ status: completes === 1 ? 502 : 200 });
   });
   await page.goto('/objects?mode=api');
-  await expect(page.getByRole('heading', { name: 'Подключение и загрузка' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Материалы площадки' })).toBeVisible();
   await expect(page.locator('.reg-row')).toHaveCount(0);
   await page.getByRole('button', { name: '+ Загрузить фото или видео' }).click();
   await page
@@ -38,7 +38,7 @@ test('API upload sequence and confirmation retry without another PUT', async ({ 
   await page.getByRole('button', { name: 'Загрузить файлы', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('HTTP 502');
   await page.getByRole('button', { name: 'Повторить подтверждение' }).click();
-  await expect(page.getByRole('dialog')).toContainText('READY: файлы загружены; анализ пока недоступен.');
+  await expect(page.getByRole('dialog')).toContainText('Файлы загружены. Анализ пока недоступен.');
   expect(calls).toEqual(['init', 'put', 'complete', 'complete']);
 });
 test('failed PUT and cancellation never call complete', async ({ page }) => {
@@ -81,5 +81,5 @@ test('API failure remains API and never switches to fixtures', async ({ page }) 
   await page.goto('/objects?mode=api');
   await expect(page.getByRole('alert')).toContainText('Не удалось');
   await expect(page.locator('.reg-row')).toHaveCount(0);
-  await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+  await expect(page.locator('.mode-label')).toHaveText('Рабочая версия');
 });

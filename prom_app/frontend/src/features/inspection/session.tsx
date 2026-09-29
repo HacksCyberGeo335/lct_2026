@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../../shared/UnsavedChanges';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { InspectionFrame } from '../../domain/inspection';
 import type { Stage } from '../../domain/models';
@@ -19,6 +20,11 @@ interface Store {
 const InspectionContext = createContext<Store | null>(null);
 export function InspectionProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<Record<string, InspectionSession>>({});
+  useUnsavedChanges(
+    Object.values(sessions).some((s) => s.frames.length > 0 || !!s.plan || !!s.profile),
+    'Материалы проверки открыты в текущем сеансе.',
+    false,
+  );
   const urls = useRef(new Set<string>());
   useEffect(() => {
     const owned = urls.current;

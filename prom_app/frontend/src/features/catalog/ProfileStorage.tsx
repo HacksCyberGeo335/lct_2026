@@ -27,7 +27,13 @@ export function ProfileStorage({
   const [error, setError] = useState(''),
     [message, setMessage] = useState(''),
     [pending, setPending] = useState<CatalogProfile | null>(null);
-  const [messageProfile, setMessageProfile] = useState('');
+  const [messageProfile, setMessageProfile] = useState(() => {
+    try {
+      return JSON.stringify(readProfile(mode, profile.siteId, catalog));
+    } catch {
+      return '';
+    }
+  });
   const version = useRef(0);
   useEffect(
     () => () => {
@@ -59,8 +65,11 @@ export function ProfileStorage({
     setMessage('');
     try {
       const valid = validateProfile(profile, catalog, profile.siteId);
-      if (download) downloadJson(valid, 'inspection-profile-' + profile.siteId + '.json');
-      else {
+      if (download) {
+        downloadJson(valid, 'inspection-profile-' + profile.siteId + '.json');
+        setMessageProfile(JSON.stringify(profile));
+        setMessage('Файл профиля скачан. Снимки и справочник сохраняются отдельно.');
+      } else {
         localStorage.setItem(profileKey(mode, profile.siteId), JSON.stringify(valid));
         setMessageProfile(JSON.stringify(profile));
         onSaved();
@@ -72,6 +81,12 @@ export function ProfileStorage({
   }
   return (
     <div className="catalog-storage">
+      <p className="sub">
+        {messageProfile === JSON.stringify(profile)
+          ? 'Текущая версия профиля сохранена или применена'
+          : 'Есть несохранённые настройки проверки'}
+        . Снимки и справочник сохраняются отдельно.
+      </p>
       <div className="actions">
         <button className="btn btn-quiet" onClick={() => save(false)}>
           Сохранить профиль в браузере

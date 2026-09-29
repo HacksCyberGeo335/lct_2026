@@ -49,7 +49,7 @@ export function QueryState({
       <h2 className="h-sec">
         {error instanceof UnsupportedError ? 'Раздел пока недоступен в API' : 'Не удалось получить данные'}
       </h2>
-      <p>{error.message}</p>
+      <ErrorMessage message={error.message} />
       {retry && !(error instanceof UnsupportedError) && (
         <button className="btn btn-quiet" onClick={retry}>
           Повторить
@@ -177,5 +177,20 @@ export function Notice({ children }: { children: ReactNode }) {
     <motion.div {...appearance(reduce)} className="notice" role="status">
       {children}
     </motion.div>
+  );
+}
+
+export function ErrorMessage({ message }: { message: string }) {
+  const technical = /HTTP|UUID|Gateway|CORS|init-upload|storage_key|SHA-256|JSON|TypeError/i.test(message);
+  return technical ? (
+    <>
+      <p>Не удалось завершить действие. Повторите попытку или передайте сведения об ошибке администратору.</p>
+      <details>
+        <summary>Технические сведения об ошибке</summary>
+        <p>{message}</p>
+      </details>
+    </>
+  ) : (
+    <p>{message}</p>
   );
 }

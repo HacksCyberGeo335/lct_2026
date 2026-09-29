@@ -31,10 +31,13 @@ export function CatalogInspection({ project }: { project?: Project }) {
     <>
       <header className="pagehead">
         <p className="eyebrow">{project?.name ?? 'Локальная проверка площадки'}</p>
-        <h1 className="h-page">Снимки и работы</h1>
+        <h1 className="h-page">Снимки и отклонения</h1>
         <p className="meta">Выберите плановую работу, уточните условия и сопоставьте их с наблюдениями.</p>
       </header>
-      <CatalogManager builtin={query.data} />
+      <details className="sheet sheet-pad">
+        <summary>Управление справочником</summary>
+        <CatalogManager builtin={query.data} />
+      </details>
       {!custom && query.isPending && <p role="status">Загружаем и проверяем справочник…</p>}
       {!custom && query.isError && (
         <section className="sheet sheet-pad stack">
@@ -160,42 +163,33 @@ function Workspace({
   }
   return (
     <div className="catalog-workspace stack">
-      <section className="sheet sheet-pad stack">
-        <div className="section-heading">
-          <p>
-            <b>Проверка по выбранному справочнику</b>
-            <br />
-            <span className="sub">
-              {catalog.cards.length} работ · {catalog.detectors.size} классов детектора
-            </span>
-          </p>
-          {demoExtension && (
-            <button
-              className="btn btn-primary"
-              disabled={busy || snapshotBusy}
-              onClick={() =>
-                session.frames.length || profile.workId || session.plan ? setConfirm(true) : void demo()
-              }
-            >
-              Открыть пример со справочником
-            </button>
-          )}
-        </div>
-        <p className="sub">
-          Выберите работу и уточните условия, влияющие на технику. Справочник не заменяет проектную
-          документацию.
-        </p>
-        <p>
-          {profile.kind === 'demo'
-            ? 'Синтетический пример: котлован со складированием грунта. Можно менять метод и сравнивать результат.'
-            : 'Локальный профиль проверки. Настройки задаёт оператор; это не утверждённый ППР.'}
-        </p>
-        {recoveryError && <p role="alert">{recoveryError}</p>}
-        {error && <p role="alert">{error}</p>}
-        {busy && <p role="status">Открываем демонстрационные снимки…</p>}
-      </section>
+      <nav className="actions" aria-label="Шаги проверки">
+        <a className="btn btn-quiet" href="#check-work">
+          1. Работа и условия
+        </a>
+        <a className="btn btn-quiet" href="#check-materials">
+          2. Материалы
+        </a>
+        <a className="btn btn-quiet" href="#check-result">
+          3. Результат
+        </a>
+      </nav>
+      {recoveryError && <p role="alert">{recoveryError}</p>}
+      {error && <p role="alert">{error}</p>}
+      {demoExtension && (
+        <button
+          className="btn btn-quiet"
+          disabled={busy || snapshotBusy}
+          onClick={() =>
+            session.frames.length || profile.workId || session.plan ? setConfirm(true) : void demo()
+          }
+        >
+          Открыть пример со справочником
+        </button>
+      )}
       <fieldset className="catalog-body stack" disabled={busy}>
-        <section className="sheet sheet-pad stack">
+        <section id="check-work" className="sheet sheet-pad stack check-step">
+          <h2 className="h-sec">1. Работа и условия</h2>
           <WorkPicker
             catalog={catalog}
             selected={profile.workId}
@@ -223,28 +217,35 @@ function Workspace({
               Скачать пример CSV со связью со справочником
             </a>
           </details>
-          <ProfileStorage
+          <details>
+            <summary>Дополнительные инструменты: профиль проверки</summary>
+            <ProfileStorage
+              catalog={catalog}
+              profile={profile}
+              mode={mode}
+              onApply={change}
+              onSaved={() => setRecoveryError('')}
+            />
+          </details>
+        </section>
+        <div id="check-materials" className="check-step">
+          <FrameWorkspace
+            key={frameRevision}
+            objectId={objectId}
+            threshold={profile.confidence}
+            disabled={busy}
+            onBusyChange={setSnapshotBusy}
+          />
+        </div>
+        <div id="check-result" className="check-step">
+          <CatalogAssessment
             catalog={catalog}
             profile={profile}
-            mode={mode}
-            onApply={change}
-            onSaved={() => setRecoveryError('')}
+            frames={session.frames}
+            selected={selected}
+            bindingError={bindingError}
           />
-        </section>
-        <FrameWorkspace
-          key={frameRevision}
-          objectId={objectId}
-          threshold={profile.confidence}
-          disabled={busy}
-          onBusyChange={setSnapshotBusy}
-        />
-        <CatalogAssessment
-          catalog={catalog}
-          profile={profile}
-          frames={session.frames}
-          selected={selected}
-          bindingError={bindingError}
-        />
+        </div>
       </fieldset>
       <Modal
         open={confirm}

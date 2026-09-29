@@ -13,6 +13,7 @@ export function ProjectForm({
 }) {
   const [value, setValue] = useState<ProjectFields>(() => ({ ...initial }));
   const [error, setError] = useState('');
+  const [issues, setIssues] = useState<Record<string, string>>({});
   const fields: [keyof ProjectFields, string, boolean][] = [
     ['name', 'Название объекта', true],
     ['address', 'Адрес строительства', true],
@@ -29,9 +30,14 @@ export function ProjectForm({
       onSubmit={(e) => {
         e.preventDefault();
         setError('');
+        setIssues({});
         const parsed = projectFieldsSchema.safeParse(value);
         if (!parsed.success) {
-          setError(parsed.error.issues[0].message);
+          const errors = Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message]));
+          setIssues(errors);
+          e.currentTarget
+            .querySelector<HTMLInputElement>('[name="' + String(parsed.error.issues[0].path[0]) + '"]')
+            ?.focus();
           return;
         }
         try {
@@ -50,11 +56,22 @@ export function ProjectForm({
             {label}
             {required ? ' *' : ''}
             <input
+              name={key}
+              aria-invalid={!!issues[key]}
+              aria-describedby={issues[key] ? 'project-error-' + key : undefined}
               required={required}
               maxLength={300}
               value={value[key]}
-              onChange={(e) => setValue({ ...value, [key]: e.target.value })}
+              onChange={(e) => {
+                setValue({ ...value, [key]: e.target.value });
+                setIssues({ ...issues, [key]: '' });
+              }}
             />
+            {issues[key] && (
+              <span id={'project-error-' + key} className="error-text" role="alert">
+                {issues[key]}
+              </span>
+            )}
           </label>
         ))}
       </div>

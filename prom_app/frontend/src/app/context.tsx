@@ -1,11 +1,14 @@
 import { createContext, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { projectRepository } from '../features/projects/repository';
+import { projectView } from '../api/source';
 import { source } from '../api/source';
 import type { Mode, Recording } from '../domain/models';
 import type { FileAnalysis } from '../features/analysis/types';
 export interface LocalRecording extends Recording {
   objectId: string;
+  sourceFile?: File;
   analysis?: FileAnalysis;
 }
 export interface AppContextValue {
@@ -25,8 +28,11 @@ export function useApp() {
 export function useObjects() {
   const { mode } = useApp();
   return useQuery({
-    queryKey: [mode, 'objects'],
-    queryFn: ({ signal }) => source(mode).objects(signal),
+    queryKey: mode === 'api' ? ['api', 'managed-projects'] : [mode, 'objects'],
+    queryFn: async ({ signal }) =>
+      mode === 'api' ? projectRepository.list(signal) : source(mode).objects(signal),
+    select: (items) => items.map((item, index) => ('version' in item ? projectView(item, index) : item)),
+    enabled: mode !== 'api' || projectRepository.available,
     retry: false,
   });
 }

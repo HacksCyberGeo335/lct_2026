@@ -23,7 +23,7 @@ test('main cannot enable demo through URL and exposes no synthetic assets or act
     '/objects/local/inspection?rules=legacy',
   ]) {
     await page.goto(path + (path.includes('?') ? '&' : '?') + 'mode=demo');
-    await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+    await expect(page.locator('.mode-label')).toHaveText('Рабочая версия');
     await expect(page.locator('h1')).toBeVisible();
     await expect(
       page.getByRole('button', {
@@ -51,14 +51,14 @@ test('API health can be refreshed and a stale success never hides a later error'
     available ? r.fulfill({ json: { status: 'ok' } }) : r.fulfill({ status: 503 }),
   );
   await page.goto('/objects?mode=api');
-  await expect(page.getByRole('status')).toContainText('Gateway доступен');
+  await expect(page.getByRole('status')).toContainText('Сервис загрузки доступен');
   available = false;
   await page.getByRole('button', { name: 'Проверить подключение', exact: true }).click();
   await expect(page.getByRole('alert')).toContainText('HTTP 503');
-  await expect(page.getByText('Gateway доступен', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('Сервис загрузки доступен', { exact: false })).toHaveCount(0);
   available = true;
   await page.getByRole('button', { name: 'Проверить подключение', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Gateway доступен');
+  await expect(page.getByRole('status')).toContainText('Сервис загрузки доступен');
 });
 
 test('own image and explicitly imported analysis stay local in working mode', async ({ page }) => {
@@ -70,6 +70,7 @@ test('own image and explicitly imported analysis stay local in working mode', as
   await expect(page.getByText('Добавьте снимки площадки', { exact: true })).toBeVisible();
   await page.getByLabel('Снимки площадки').setInputFiles('tests/fixtures/inspection/pit-missing.png');
   await expect(page.getByTestId('image-detection')).toHaveCount(0);
+  await page.getByText('Дополнительные инструменты: результаты распознавания', { exact: true }).click();
   const input = page.getByLabel('Импортировать результат анализа (JSON)');
   await input.focus();
   await input.setInputFiles('tests/fixtures/inspection/pit-missing.png.json');
@@ -118,5 +119,6 @@ test('confirmed upload survives playback failure and retries viewing without upl
   await expect(page.getByRole('alert')).toContainText('Не удалось воспроизвести');
   expect(puts).toBe(1);
   expect(completes).toBe(1);
+  await page.getByText('Технические сведения', { exact: true }).click();
   await expect(page.getByText('UUID: 021472d8-a659-47de-893d-bedc24d015e7')).toBeVisible();
 });

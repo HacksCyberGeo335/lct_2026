@@ -1,7 +1,8 @@
 import './styles/fonts.css';
 import { StrictMode, Component, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { UnsavedChangesProvider } from './shared/UnsavedChanges';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MotionConfig } from 'motion/react';
 import App from './App';
@@ -43,9 +44,18 @@ try {
       <ErrorBoundary>
         <QueryClientProvider client={client}>
           <MotionConfig reducedMotion="user">
-            <BrowserRouter>
-              <App initialMode={config.mode} apiBase={config.apiBase} />
-            </BrowserRouter>
+            <RouterProvider
+              router={createBrowserRouter([
+                {
+                  path: '*',
+                  element: (
+                    <UnsavedChangesProvider>
+                      <App initialMode={config.mode} apiBase={config.apiBase} />
+                    </UnsavedChangesProvider>
+                  ),
+                },
+              ])}
+            />
           </MotionConfig>
         </QueryClientProvider>
       </ErrorBoundary>

@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from '../../shared/UnsavedChanges';
 import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'react-router-dom';
@@ -24,6 +25,8 @@ export function ObjectWorkspace({
     enabled: repository.available,
     retry: false,
   });
+  const [dirty, setDirty] = useState(false);
+  useUnsavedChanges(dirty);
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [remove, setRemove] = useState<ManagedProject | null>(null);
   const [error, setError] = useState('');
@@ -31,27 +34,30 @@ export function ObjectWorkspace({
   const deleting = useRef(false);
   const [message, setMessage] = useState('');
   async function refresh() {
-    await Promise.all([
-      client.invalidateQueries({ queryKey: ['api', 'managed-projects'] }),
-      client.invalidateQueries({ queryKey: ['api', 'objects'] }),
-    ]);
+    await Promise.all([client.invalidateQueries({ queryKey: ['api', 'managed-projects'] })]);
   }
   const projects = query.data ?? [];
   const displayed =
-    objectId && projects.some((p) => p.id === objectId)
+    objectId && objectId !== 'unavailable' && objectId !== 'local'
       ? projects.filter((p) => p.id === objectId)
       : projects;
   return (
     <section className="sheet sheet-pad stack" aria-label="Объекты и графики">
       <div className="section-heading">
         <h2 className="h-sec">{view === 'schedule' ? 'Календарные графики' : 'Объекты строительства'}</h2>
-        <span className="sub">{repository.available ? 'Серверные данные' : 'API ещё не подключён'}</span>
+        <span className="sub">
+          {repository.available ? 'Серверные данные' : 'Сохранение пока недоступно'}
+        </span>
       </div>
       {!repository.available && (
         <p className="inspection-notice">
-          Можно заполнить карточку объекта, подготовить этапы или проверить CSV. Сохранение, загрузка списка
-          существующих объектов и удаление на сервере пока недоступны. Черновик существует только в открытой
-          форме и исчезнет при её закрытии или перезагрузке. В браузерное хранилище данные не записываются.
+          Реестр объектов пока недоступен. Можно подготовить карточку и график, но сохранить их пока нельзя.
+          Черновик будет потерян при закрытии формы или перезагрузке.
+        </p>
+      )}
+      {dirty && (
+        <p role="status" className="sub">
+          Есть несохранённые изменения
         </p>
       )}
       {!workflow && (
@@ -72,17 +78,26 @@ export function ObjectWorkspace({
         <QueryState pending={query.isPending} error={query.error} retry={() => void query.refetch()} />
       )}
       {workflow ? (
-        <ProjectWorkflow
-          workflow={workflow}
-          projects={projects}
-          repository={repository}
-          onCancel={() => setWorkflow(null)}
-          onSaved={async () => {
-            setWorkflow(null);
-            setMessage('Объект и его график сохранены на сервере.');
-            await refresh();
-          }}
-        />
+        <div onChangeCapture={() => setDirty(true)}>
+          <ProjectWorkflow
+            onDirty={() => setDirty(true)}
+            workflow={workflow}
+            projects={projects}
+            repository={repository}
+            onCancel={() => {
+              if (!dirty || window.confirm('Удалить несохранённый черновик?')) {
+                setDirty(false);
+                setWorkflow(null);
+              }
+            }}
+            onSaved={async () => {
+              setDirty(false);
+              setWorkflow(null);
+              setMessage('Объект и его график сохранены на сервере.');
+              await refresh();
+            }}
+          />
+        </div>
       ) : (
         <>
           {repository.available && query.isSuccess && !projects.length && (
@@ -181,12 +196,14 @@ export function ObjectWorkspace({
   );
 }
 function ProjectWorkflow({
+  onDirty,
   workflow,
   projects,
   repository,
   onCancel,
   onSaved,
 }: {
+  onDirty: () => void;
   workflow: Workflow;
   projects: ManagedProject[];
   repository: ProjectRepository;
@@ -298,7 +315,15 @@ function ProjectWorkflow({
             <button type="button" className="btn btn-quiet" onClick={() => setStep('fields')}>
               Изменить данные объекта
             </button>
-            <PlanEditor plan={plan} onChange={setPlan} objectName={fields.name} startImport={workflow.csv} />
+            <PlanEditor
+              plan={plan}
+              onChange={(plan) => {
+                onDirty();
+                setPlan(plan);
+              }}
+              objectName={fields.name}
+              startImport={workflow.csv}
+            />
           </fieldset>
           {!repository.available && (
             <p className="inspection-notice">

@@ -22,9 +22,7 @@ export function RuleContext({
   return (
     <div className="catalog-context">
       <h2 className="h-sec">План и условия проверки</h2>
-      <p className="sub">
-        План задаётся независимо от снимка. Настройки не запускают ML и не включают автоматические тревоги.
-      </p>
+      <p className="sub">План задаётся независимо от снимка. Автоматический анализ пока недоступен.</p>
       <div className="catalog-grid">
         <label className="field">
           Источник плановой работы
@@ -194,7 +192,7 @@ export function RuleContext({
             </label>
           )}
           <label className="field">
-            Модель и версия профиля
+            Источник распознавания
             <input
               value={p.modelId}
               maxLength={120}

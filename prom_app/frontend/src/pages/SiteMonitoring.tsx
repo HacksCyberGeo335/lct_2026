@@ -1,12 +1,15 @@
+import { OpenInInspection } from '../features/upload/OpenInInspection';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp, useProject } from '../app/context';
 import { Upload } from '../features/upload/Upload';
 import { StoredMedia } from '../features/upload/StoredMedia';
 import { AnalysisPanel } from '../features/analysis/AnalysisPanel';
-import { Empty } from '../shared/ui';
+import { projectRepository } from '../features/projects/repository';
+import { Empty, QueryState } from '../shared/ui';
 export function SiteMonitoring() {
-  const { project, objectId } = useProject();
+  const query = useProject();
+  const { project, objectId } = query;
   const { recordings } = useApp();
   const [selected, setSelected] = useState('');
   const files = recordings.filter((file) =>
@@ -19,7 +22,17 @@ export function SiteMonitoring() {
       <header className="pagehead">
         <p className="eyebrow">Мониторинг строительной площадки</p>
         <h1 className="h-page">Площадка</h1>
-        <p className="meta">{project?.name ?? 'Объект для мониторинга ещё не подключён'}</p>
+        <p className="meta">
+          {project?.name ??
+            (!projectRepository.available
+              ? 'Реестр объектов пока не подключён'
+              : query.isFetching
+                ? 'Загрузка объекта…'
+                : query.error
+                  ? 'Не удалось загрузить объект'
+                  : 'Объект не найден')}
+        </p>
+        <QueryState error={query.error} retry={() => void query.refetch()} />
         <div className="actions">
           <Upload objectId={project?.id ?? ''} onSelected={setSelected} />
           <Link className="btn btn-quiet" to={route + '/inspection?mode=api'}>
@@ -72,6 +85,7 @@ export function SiteMonitoring() {
           <p className="sub">Отсутствие результата не означает, что техники на площадке нет.</p>
         </aside>
       </div>
+      {file && <OpenInInspection recording={file} />}
       {file && (
         <div className="sheet sheet-pad">
           <AnalysisPanel fileId={file.id} fileName={file.name} analysis={file.analysis} />

@@ -65,9 +65,9 @@ test('multiple photos retain completed uploads and retry only failed confirmatio
   await page.getByLabel('Файл', { exact: true }).selectOption(id(1));
   await expect(page.getByRole('img', { name: 'первое.png', exact: true })).toBeVisible();
   await expect(page.locator('video')).toHaveCount(0);
-  const analysis = page.getByRole('region', { name: 'Обработка и результат LLM' });
+  const analysis = page.getByRole('region', { name: 'Обработка и результат анализа' });
   await expect(analysis).toContainText('Файл: первое.png');
-  await expect(analysis).toContainText('Заготовка интерфейса');
+  await expect(analysis).toContainText('Анализ пока недоступен');
   await expect(analysis.getByRole('progressbar')).toHaveCount(0);
   await page.getByLabel('Файл', { exact: true }).selectOption(id(3));
   await expect(analysis).toContainText('Файл: третье.png');

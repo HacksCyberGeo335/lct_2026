@@ -1339,3 +1339,36 @@ tbody th {
     grid-template-columns: 1fr;
   }
 }
+
+.mobile-menu {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-menu {
+    display: block;
+    order: 3;
+    width: 100%;
+    margin-top: 10px;
+    text-align: left;
+  }
+  .chrome .nav {
+    display: none;
+  }
+  .chrome .nav.nav-open {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .chrome .navlink {
+    min-height: 44px;
+  }
+  .chrome {
+    position: relative;
+  }
+}
+.field [aria-invalid='true'] {
+  border-color: var(--warn, #a54224);
+}
+.check-step {
+  scroll-margin-top: 140px;
+}

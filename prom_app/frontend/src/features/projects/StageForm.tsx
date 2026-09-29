@@ -1,3 +1,5 @@
+import { useCatalog } from '../../api/catalog';
+import { useOptionalCatalogChoice } from '../catalog/CatalogProvider';
 import { useState } from 'react';
 import { classes, type EquipmentClass, type Stage } from '../../domain/models';
 import { resourcesOf } from '../../domain/plan';
@@ -14,6 +16,10 @@ export function StageForm({
   onSave: (stage: Stage) => void;
   onCancel: () => void;
 }) {
+  const catalogQuery = useCatalog();
+  const choice = useOptionalCatalogChoice();
+  const catalog = choice?.custom?.catalog ?? catalogQuery.data;
+  const [workSearch, setWorkSearch] = useState('');
   const [value, setValue] = useState({
     name: stage?.name ?? '',
     start: stage?.start ?? '',
@@ -35,6 +41,10 @@ export function StageForm({
       onSubmit={(e) => {
         e.preventDefault();
         setError('');
+        if (value.end < value.start) {
+          e.currentTarget.querySelector<HTMLInputElement>('input[name="end"]')?.focus();
+          return;
+        }
         const row = {
           ...value,
           parent_id: '',
@@ -92,6 +102,9 @@ export function StageForm({
           <input
             required
             type="date"
+            name="end"
+            aria-invalid={!!value.end && value.end < value.start}
+            aria-describedby="stage-date-error"
             value={value.end}
             onChange={(e) => setValue({ ...value, end: e.target.value })}
           />
@@ -194,6 +207,11 @@ export function StageForm({
           Добавить технику
         </button>
       </fieldset>
+      {value.end && value.end < value.start && (
+        <p id="stage-date-error" role="alert">
+          Окончание этапа должно быть не раньше начала.
+        </p>
+      )}
       <details>
         <summary>Правило проверки и связь со справочником</summary>
         <div className="stack">
@@ -207,18 +225,45 @@ export function StageForm({
               <option value="required-and-unexpected">Проверять нехватку и лишние классы</option>
             </select>
           </label>
-          <p className="sub">ID работы и версию справочника укажите вместе или оставьте пустыми.</p>
           <label className="field">
-            ID работы справочника
-            <input value={value.work_id} onChange={(e) => setValue({ ...value, work_id: e.target.value })} />
+            Поиск работы справочника
+            <input type="search" value={workSearch} onChange={(e) => setWorkSearch(e.target.value)} />
           </label>
           <label className="field">
-            Версия справочника
-            <input
-              value={value.catalog_id}
-              onChange={(e) => setValue({ ...value, catalog_id: e.target.value })}
-            />
+            Работа справочника
+            <select
+              disabled={!catalog}
+              value={value.work_id}
+              onChange={(e) =>
+                setValue({ ...value, work_id: e.target.value, catalog_id: e.target.value ? catalog!.id : '' })
+              }
+            >
+              <option value="">Без связи со справочником</option>
+              {value.work_id && (!catalog?.works.has(value.work_id) || value.catalog_id !== catalog.id) && (
+                <option value={value.work_id}>Требуется повторный выбор работы</option>
+              )}
+              {catalog?.cards
+                .filter(
+                  (c) =>
+                    c.row_kind === 'ITEM' &&
+                    (c.id === value.work_id ||
+                      c.canonical_work_name.toLocaleLowerCase().includes(workSearch.toLocaleLowerCase())),
+                )
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.canonical_work_name}
+                  </option>
+                ))}
+            </select>
           </label>
+          {catalogQuery.isError && !catalog && (
+            <p role="alert">
+              Не удалось загрузить справочник.{' '}
+              <button type="button" className="btn-link" onClick={() => void catalogQuery.refetch()}>
+                Повторить
+              </button>
+            </p>
+          )}
         </div>
       </details>
       {error && (

@@ -26,7 +26,7 @@ try {
     results.push({ previewPath: path, status: response.status() });
   }
   await page.goto('http://127.0.0.1:4173/objects');
-  await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+  await expect(page.locator('.mode-label')).toHaveText('Рабочая версия');
   if (demo) {
     await page.goto('http://127.0.0.1:4173/objects/north-park/inspection?mode=demo');
     await page.getByRole('button', { name: 'Открыть пример со справочником', exact: true }).click();
@@ -34,7 +34,7 @@ try {
     results.push({ demoExtension: 'explicit demo works' });
   } else {
     await page.goto('http://127.0.0.1:4173/objects?mode=demo');
-    await expect(page.locator('.mode-label')).toHaveText('Рабочее подключение API');
+    await expect(page.locator('.mode-label')).toHaveText('Рабочая версия');
     await expect(page.getByRole('button', { name: 'Открыть демо →' })).toHaveCount(0);
     for (const path of [
       '/inspection/manifest.json',
